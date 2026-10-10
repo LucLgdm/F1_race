@@ -32,12 +32,15 @@ class Car {
 
 		void update(const CarControls& controls, float deltaTime);
 
+		// Getters
 		[[nodiscard]] Vec2 position() const noexcept;
 		[[nodiscard]] float heading() const noexcept;
 		[[nodiscard]] float speed() const noexcept;
+		[[nodiscard]] float steeringAngle() const noexcept;
 
 	private:
 		Vec2 _position;
 		float _heading = 0.0f; // Radians
 		float _speed = 0.0f;   // Meter per sec
+		float _steeringAngle = 0.0f; // Radians, positive on the left
 };

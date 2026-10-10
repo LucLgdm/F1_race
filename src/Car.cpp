@@ -23,8 +23,9 @@ float Car::speed() const noexcept {
 	return _speed;
 }
 
-#include <algorithm>
-#include <cmath>
+float Car::steeringAngle() const noexcept {
+	return _steeringAngle;
+}
 
 void Car::update(const CarControls& controls, float deltaTime) {
 	constexpr float acceleration = 8.0f;  // m/s²
@@ -35,14 +36,23 @@ void Car::update(const CarControls& controls, float deltaTime) {
 	const float throttle = std::clamp(controls.throttle, 0.0f, 1.0f);
 	const float brake = std::clamp(controls.brake, 0.0f, 1.0f);
 
-	const float netAcceleration =
-		throttle * acceleration
-		- brake * braking
-		- rollingDeceleration;
+	const float netAcceleration = throttle * acceleration - brake * braking - rollingDeceleration;
 
+	// Speed calculation
 	_speed += netAcceleration * deltaTime;
 	_speed = std::clamp(_speed, 0.0f, maxSpeed);
 
+	// Steering angle calculation
+	constexpr float maxSteeringAngle = 0.45f; // Environ 26°
+	constexpr float wheelbase = 2.4f;        // Distance entre les essieux
+
+	// Nos commandes : -1 = gauche, +1 = droite.
+	// Nos angles : positif = rotation vers la gauche.
+	_steeringAngle = -std::clamp(controls.steering, -1.0f, 1.0f) * maxSteeringAngle;
+	const float angularVelocity = (_speed / wheelbase) * std::tan(_steeringAngle);
+	_heading += angularVelocity * deltaTime;
+
+	// Position calculation
 	_position.x += std::cos(_heading) * _speed * deltaTime;
 	_position.y += std::sin(_heading) * _speed * deltaTime;
 }

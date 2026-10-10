@@ -12,11 +12,15 @@
 #include "Application.hpp"
 
 int main() {
-	std::cout << "Hello World!" << std::endl;
+	std::cout << "Hello F1 ML!" << std::endl;
 	Application app;
 
-	app.init();
-	app.run();
-
+	try {
+		app.init();
+		app.run();
+	} catch (const std::exception& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return 1;
+	}
 	return 0;
 }
