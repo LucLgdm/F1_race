@@ -27,6 +27,15 @@ float Car::steeringAngle() const noexcept {
 	return _steeringAngle;
 }
 
+float Car::collisionRadius() const noexcept {
+	return 2.3f;
+}
+
+void Car::stop() noexcept {
+	_speed = 0.0f;
+	_steeringAngle = 0.0f;
+}
+
 void Car::update(const CarControls& controls, float deltaTime) {
 	constexpr float acceleration = 8.0f;  // m/s²
 	constexpr float braking = 15.0f;      // m/s²

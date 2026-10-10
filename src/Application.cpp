@@ -49,7 +49,15 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
+			// Copy car is allright because it contains only a few value and no OpenGL resource.
+			const Car previousState = _car; 
 			_car.update(controls, static_cast<float>(fixedDt));
+			
+			// Check if the car can move to the next position
+			if (!_track.canDrive(_car.position(), _car.collisionRadius())) {
+				_car = previousState; // Revert to the previous state if collision occurs
+				_car.stop(); // Stop the car if it collides with the track boundaries
+			}
 			accumulator -= fixedDt;
 		}
 

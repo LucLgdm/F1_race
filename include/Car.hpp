@@ -34,6 +34,9 @@ class Car {
 		[[nodiscard]] float heading() const noexcept;
 		[[nodiscard]] float speed() const noexcept;
 		[[nodiscard]] float steeringAngle() const noexcept;
+		[[nodiscard]] float collisionRadius() const noexcept;
+
+		void stop() noexcept;
 
 	private:
 		Vec2 _position;

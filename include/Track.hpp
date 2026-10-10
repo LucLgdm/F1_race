@@ -25,10 +25,17 @@ class Track {
 	public:
 		Track(float width, float height, float roadWidth);
 
+		// Accessors
 		[[nodiscard]] const std::array<RoadSection, 4>& sections() const noexcept;
 		[[nodiscard]] Vec2 startPosition() const noexcept;
+
+		[[nodiscard]] bool canDrive(Vec2 position, float radius) const noexcept;
 
 	private:
 		std::array<RoadSection, 4> _sections{};
 		Vec2 _startPosition{};
+
+		float _width;
+		float _height;
+		float _roadWidth;
 };
