@@ -131,33 +131,36 @@ void Renderer::initializeShader() {
  * Drawing
  ******************************/
 
-void Renderer::drawCar(const Car& car, int width, int height) {
-	if (width <= 0 || height <= 0)
+void Renderer::beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBufferHeight) {
+	if (frameBufferWidth <= 0 || frameBufferHeight <= 0)
 		return;
 
-	glViewport(0, 0, width, height);
-
+	glViewport(0, 0, frameBufferWidth, frameBufferHeight);
+	glUseProgram(_shaderProgram);
 	// Zone visible : 40 mètres de hauteur.
 	// La largeur dépend du format de la fenêtre.
-	const float aspect = static_cast<float>(width) / static_cast<float>(height);
+	const float aspect = static_cast<float>(frameBufferWidth) / static_cast<float>(frameBufferHeight);
 
-	constexpr float halfHeight = 20.0f;
+	constexpr float halfHeight = 30.0f;
 	const float halfWidth = halfHeight * aspect;
 
 	const glm::mat4 projection = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
+	const glm::mat4 view = glm::translate(glm::mat4{1.0f}, glm::vec3{-cameraPosition.x, -cameraPosition.y, 0.0f});
 
+	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+}
+
+void Renderer::drawCar(const Car& car) {
 	const Vec2 position = car.position();
 
 	glm::mat4 model = glm::translate(glm::mat4{1.0f}, glm::vec3{position.x, position.y, 0.0f});
-
 	model = glm::rotate(model, car.heading(), glm::vec3{0.0f, 0.0f, 1.0f});
 
 	glUseProgram(_shaderProgram);
 
 	const GLint modelLocation = glGetUniformLocation(_shaderProgram, "model");
 	const GLint colorLocation = glGetUniformLocation(_shaderProgram, "objectColor");
-
-	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	glBindVertexArray(_carVAO);
 
@@ -187,10 +190,25 @@ void Renderer::drawCar(const Car& car, int width, int height) {
 	// Draw the car body
 	glUniform3f(colorLocation, 1.0f, 0.2f, 0.2f);
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 }
 
+void Renderer::drawTrack(const Track& track) {
+	const GLint modelLocation = glGetUniformLocation(_shaderProgram, "model");
+	const GLint colorLocation = glGetUniformLocation(_shaderProgram, "objectColor");
+	glUniform3f(colorLocation, 0.3f, 0.3f, 0.3f); // Gray color for track
+	glBindVertexArray(_carVAO);
+
+	for (const RoadSection& section : track.sections()) {
+		glm::mat4 model = glm::translate(glm::mat4{1.0f}, glm::vec3{section.center.x, section.center.y, 0.0f});
+		model = glm::scale(model, glm::vec3{section.size.x / 4.0f, section.size.y / 2.0f, 1.0f});
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+	glBindVertexArray(0);
+}
 
 void Renderer::shutdown() {
 	glDeleteBuffers(1, &_carVBO);

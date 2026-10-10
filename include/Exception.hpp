@@ -28,3 +28,12 @@ class openGlError : public exception {
 	private :
 		string _msg;
 };
+
+class trackError : public exception {
+	public:
+		explicit trackError(const std::string& m) : _msg(m) {}
+		const char* what() const noexcept override { return _msg.c_str(); }
+	private :
+		string _msg;
+};
+

@@ -17,7 +17,8 @@
 
 #include "Exception.hpp"
 #include "Car.hpp"
-#include "renderer.hpp"
+#include "Track.hpp"
+#include "Renderer.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;
@@ -33,8 +34,9 @@ class Application {
 
 	private:
 		GLFWwindow* _window;
-		Car _car;
 		Renderer _renderer;
+		Track _track{120.0f, 80.0f, 10.0f};
+		Car _car{Vec2{0.0f, 0.0f}};
 		
 		void initGLFW();
 		void initOpenGL();

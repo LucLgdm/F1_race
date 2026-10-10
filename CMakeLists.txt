@@ -9,8 +9,9 @@ add_executable(F1_race
 	src/main.cpp
 	src/glad.c
 	src/Application.cpp
-	src/Car.cpp
 	src/Renderer.cpp
+	src/Car.cpp
+	src/Track.cpp
 )
 
 target_compile_features(F1_race PRIVATE cxx_std_20)

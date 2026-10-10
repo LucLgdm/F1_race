@@ -1,0 +1,34 @@
+/* ****************************************** */
+/*   Track.hpp                  	          */
+/*                                            */
+/*   By: Luc <lucdemercey@gmail.com>          */
+/*                                            */
+/*   Created: 2026/10/10 22:41:11 by Luc      */
+/*   Updated: 2026/10/10 22:41:11 by Luc      */
+/* ****************************************** */
+
+#pragma once
+
+#include <array>
+#include <algorithm>
+#include <cmath>
+
+#include "Vec2.hpp"
+#include "Exception.hpp"
+
+struct RoadSection {
+	Vec2 center;
+	Vec2 size;
+};
+
+class Track {
+	public:
+		Track(float width, float height, float roadWidth);
+
+		[[nodiscard]] const std::array<RoadSection, 4>& sections() const noexcept;
+		[[nodiscard]] Vec2 startPosition() const noexcept;
+
+	private:
+		std::array<RoadSection, 4> _sections{};
+		Vec2 _startPosition{};
+};

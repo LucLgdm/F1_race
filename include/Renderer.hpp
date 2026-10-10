@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include "Exception.hpp"
+#include "Track.hpp"
 #include "Car.hpp"
 
 class Renderer {
@@ -25,7 +26,9 @@ class Renderer {
 		void initializeShader();
 		void shutdown();
 
-		void drawCar(const Car& car, int frameBufferWidth, int frameBufferHeight);
+		void beginFrame(Vec2 cameraPosition,int frameBufferWidth, int frameBufferHeight);
+		void drawCar(const Car& car);
+		void drawTrack(const Track& track);
 
 	private:
 		GLuint _carVAO = 0;

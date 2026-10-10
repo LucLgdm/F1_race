@@ -23,6 +23,8 @@ void Application::init() {
 	initOpenGL();				// Configure OpenGl global
 
 	_renderer.initialize();		// Initialize the renderer
+	_track = Track(120.0f, 80.0f, 10.0f); 
+	_car = Car(_track.startPosition());	// Initialize the car at the start position
 }
 
 void Application::run() {
@@ -55,7 +57,11 @@ void Application::run() {
 		int width = 0;
 		int height = 0;
 		glfwGetFramebufferSize(_window, &width, &height);
-		_renderer.drawCar(_car, width, height);
+		if (width > 0 && height > 0) {
+			_renderer.beginFrame(_car.position(), width, height);
+			_renderer.drawTrack(_track);
+			_renderer.drawCar(_car);
+		}	
 
 		glfwSwapBuffers(_window);
 	}

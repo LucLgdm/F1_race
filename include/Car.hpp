@@ -12,10 +12,7 @@
 #include <algorithm>
 #include <cmath>
 
-struct Vec2 {
-	float x = 0.0f;
-	float y = 0.0f;
-};
+#include "Vec2.hpp"
 
 struct CarControls {
 	float throttle = 0.0f; // [0, 1]
