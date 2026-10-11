@@ -9,7 +9,8 @@
 
 #include "ML/Neuron.hpp"
 
-Neuron::Neuron(std::vector<float> weights, float bias) : _weights(std::move(weights)), _bias(bias) {
+Neuron::Neuron(std::vector<float> weights, float bias, Activation activation) 
+			: _weights(std::move(weights)), _bias(bias), _activation(activation) {
 	if (_weights.empty())
 		throw neuralError("Neuron must have at least one weight.");
 }
@@ -29,5 +30,5 @@ float Neuron::forward(std::span<const float> inputs) const {
 	for(std::size_t i = 0; i < inputs.size(); ++i) {
 		sum += inputs[i] * _weights[i];
 	}
-	return std::max(0.0f, sum); // ReLU activation function
+	return activate(sum, _activation);
 }

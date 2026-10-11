@@ -15,10 +15,11 @@
 #include <utility>
 
 #include "Exception.hpp"
+#include "Activation.hpp"
 
 class Neuron {
 	public:
-		Neuron(std::vector<float> weights, float bias);
+		Neuron(std::vector<float> weights, float bias, Activation activation = Activation::ReLU);
 
 		// Compute the output of the neuron given a set of inputs
 		// Span is used to avoid copying the input vector and to allow for flexible input sizes.
@@ -27,4 +28,5 @@ class Neuron {
 	private:
 		std::vector<float> _weights;
 		float _bias;
+		Activation _activation;
 };

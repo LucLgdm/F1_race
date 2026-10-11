@@ -20,6 +20,7 @@ Network::Network(std::vector<Layer> layers) : _layers(std::move(layers)) {
  ************************************************/
 
 std::vector<float> Network::forward(std::span<const float> inputs) const {
+	// First layer
 	std::vector<float> outputs = _layers.front().forward(inputs);
 	for(std::size_t i = 1; i < _layers.size(); i++) {
 		outputs = _layers[i].forward(outputs);

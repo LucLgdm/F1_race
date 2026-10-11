@@ -12,8 +12,10 @@
 #include "ML/Network.hpp"
 
 void testNeuron() {
-	Neuron neuron{{0.4f, -0.2f}, 0.1f};
-	const std::array<float, 2> inputs = {0.5f, 0.8f};
+	// Neuron neuron{{0.4f, -0.2f}, 0.1f};
+	Neuron neuron{{1.0f}, 0.0f, Activation::Tanh};
+	// const std::array<float, 2> inputs = {0.5f, 0.8f};
+	const std::array<float, 1> inputs = {-0.5f};
 	std::cout << "Neuron output: " << neuron.forward(inputs) << std::endl;
 }
 
