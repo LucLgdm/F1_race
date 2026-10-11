@@ -1,0 +1,26 @@
+/* ****************************************** */
+/*   Network.hpp                              */
+/*                                            */
+/*   By: Luc <lucdemercey@gmail.com>          */
+/*                                            */
+/*   Created: 2026/10/11 21:55:40 by Luc      */
+/*   Updated: 2026/10/11 21:55:40 by Luc      */
+/* ****************************************** */
+
+#pragma once
+
+#include <span>
+#include <vector>
+#include <utility>
+
+#include "ML/Layer.hpp"
+
+class Network {
+	public:
+		explicit Network(std::vector<Layer> layers);
+
+		[[nodiscard]] std::vector<float> forward(std::span<const float> inputs) const;
+
+	private:
+		std::vector<Layer> _layers;
+};

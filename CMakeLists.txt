@@ -12,6 +12,10 @@ add_executable(F1_race
 	src/Renderer.cpp
 	src/Car.cpp
 	src/Track.cpp
+	src/ML/Neuron.cpp
+	src/ML/Layer.cpp
+	src/ML/Network.cpp
+	src/ML/testML.cpp
 )
 
 target_compile_features(F1_race PRIVATE cxx_std_20)

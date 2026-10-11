@@ -23,7 +23,7 @@ void Application::init() {
 	initOpenGL();				// Configure OpenGl global
 
 	_renderer.initialize();		// Initialize the renderer
-	_track = Track(120.0f, 80.0f, 10.0f); 
+	_track = Track(120.0f, 80.0f, 20.0f); 
 	_car = Car(_track.startPosition());	// Initialize the car at the start position
 }
 

@@ -8,12 +8,19 @@
 /* ****************************************** */
 
 #include <iostream>
-
 #include "Application.hpp"
+
+void testNeuron();
+void testLayer();
+void testNetwork();
 
 int main() {
 	std::cout << "Hello F1 ML!" << std::endl;
 	Application app;
+
+	testNeuron();
+	testLayer();
+	testNetwork();
 
 	try {
 		app.init();
@@ -24,3 +31,4 @@ int main() {
 	}
 	return 0;
 }
+

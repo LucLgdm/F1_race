@@ -37,3 +37,10 @@ class trackError : public exception {
 		string _msg;
 };
 
+class neuralError : public exception {
+	public:
+		explicit neuralError(const std::string& m) : _msg(m) {}
+		const char* what() const noexcept override { return _msg.c_str(); }
+	private :
+		string _msg;
+};
