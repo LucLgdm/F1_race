@@ -254,7 +254,7 @@ for (std::size_t i = 1; i < _layers.size(); ++i)
 For our manual example, the first layer returns approximately `{0.14, 0.33, 0.0}`. The final neuron uses weights `{0.5, -0.4, 0.2}` and bias `0.1`:
 
 $$
-\hat y=\operatorname{ReLU}(0.5(0.14)-0.4(0.33)+0.2(0)+0.1)=0.038
+\hat y=\max(0,\;0.5\times0.14-0.4\times0.33+0.2\times0+0.1)=0.038
 $$
 
 This is inference, or a forward pass. It uses the current parameters without changing them.
