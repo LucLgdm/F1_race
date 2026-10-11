@@ -21,7 +21,7 @@ int main() {
 	testNeuron();
 	testLayer();
 	testNetwork();
-
+	
 	try {
 		app.init();
 		app.run();

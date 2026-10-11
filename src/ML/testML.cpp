@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "ML/Network.hpp"
+#include "ML/Loss.hpp"
 
 void testNeuron() {
 	// Neuron neuron{{0.4f, -0.2f}, 0.1f};
@@ -59,4 +60,9 @@ void testNetwork() {
 	const auto outputs = network.forward(inputs);
 
 	std::cout << "Network output: " << outputs.front() << std::endl;
+
+	const std::array<float, 1> targets{0.5f};
+	const float loss = meanSquaredError(outputs, targets);
+	std::cout << "Loss: " << loss << std::endl;
 }
+
