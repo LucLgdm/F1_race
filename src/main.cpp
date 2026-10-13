@@ -13,7 +13,8 @@
 void testNeuron();
 void testLayer();
 void testNetwork();
-void testTraining();
+void testNeuralTraining();
+void testNetworkTraining();
 
 int main() {
 	std::cout << "Hello F1 ML!" << std::endl;
@@ -22,7 +23,7 @@ int main() {
 	try {
 		// app.init();
 		// app.run();
-		testTraining();
+		testNetworkTraining();
 	} catch (const std::exception& e) {
 		std::cerr << "Error: " << e.what() << std::endl;
 		return 1;

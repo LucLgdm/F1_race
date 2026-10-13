@@ -17,8 +17,11 @@
 class Layer {
 	public:
 		explicit Layer(std::vector<Neuron> neurons);
+		Layer(std::size_t inputCount, std::size_t neuronCount, Activation activation);
 
 		[[nodiscard]] std::vector<float> forward(std::span<const float> inputs) const;
+
+		std::vector<float> backward(std::span<const float> inputs, std::span<const float> outputGradients, float learningRate);
 	
 	private:
 		std::vector<Neuron> _neurons;

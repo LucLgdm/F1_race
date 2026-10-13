@@ -71,7 +71,7 @@ void testNetwork() {
 	std::cout << "Loss: " << loss << std::endl;
 }
 
-void testTraining() {
+void testNeuralTraining() {
 	// Linear activation : y = 2x + 1
 	// Neuron neuron{1, Activation::Linear};
 	// const std::array<Sample, 3> samples{{
@@ -113,4 +113,44 @@ void testTraining() {
 	const std::array<float, 1> inputs{0.5f};
 	// std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected 2" << std::endl;
 	std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected: " << std::tanh(0.5f) << std::endl;
+}
+
+void testNetworkTraining() {
+	Network network{
+		std::vector<Layer>{Layer{1, 4, Activation::Tanh}, Layer{4, 1, Activation::Linear}}
+	};
+
+	const auto averageLoss = [&]() {
+		float total = 0.0f;
+
+		for (int i = 0; i <= 20; ++i) {
+			const float x = -1.0f + 0.1f * i;
+
+			const std::array<float, 1> inputs{x};
+			const std::array<float, 1> targets{2.0f * x + 1.0f};
+
+			const auto predictions = network.forward(inputs);
+			total += meanSquaredError(predictions, targets);
+
+		}
+		return total / 21.0f;
+	};
+
+	std::cout << "Initial loss: " << averageLoss() << std::endl;
+	constexpr float learningRate = 0.01f;
+
+	for (int epoch = 1; epoch <= 3000; ++epoch) {
+		for (int i = 0; i <= 20; ++i) {
+			const float x = -1.0f + 0.1f * i;
+			const std::array<float, 1> inputs{x};
+			const std::array<float, 1> targets{2.0f * x + 1.0f};
+
+			network.train(inputs, targets, learningRate);
+		}
+		if (epoch % 500 == 0)
+			std::cout << "Epoch " << epoch << " | Loss: " << averageLoss() << std::endl;
+	}
+
+	const std::array<float, 1> inputs{0.25f};
+	std::cout << "Prediction for x = 0.25: " << network.forward(inputs).front() << " | Expected : 1.5" << std::endl;
 }

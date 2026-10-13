@@ -19,6 +19,7 @@
 
 #include "Exception.hpp"
 #include "Activation.hpp"
+#include "Loss.hpp"
 
 class Neuron {
 	public:
@@ -31,7 +32,7 @@ class Neuron {
 
 		void train(std::span<const float> inputs, float target, float learningRate);
 		float weightedSum(std::span<const float> inputs) const;
-		
+		std::vector<float> backward(std::span<const float> inputs, float outputGradient, float learningRate);
 
 	private:
 		std::vector<float> _weights;

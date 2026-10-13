@@ -27,3 +27,34 @@ std::vector<float> Network::forward(std::span<const float> inputs) const {
 	}
 	return outputs;
 }
+
+float Network::train(std::span<const float> inputs, std::span<const float> targets, float learningRate) {
+	if (!std::isfinite(learningRate) || learningRate <= 0.0f)
+		throw neuralError("Learning rate must be finite or positive");
+
+	// activations[0] contains the network input
+	// activations[i] contains layer i's outputs
+	std::vector<std::vector<float>> activations;
+	activations.reserve(_layers.size() + 1);
+	activations.emplace_back(inputs.begin(), inputs.end());
+
+	for (const Layer& layer : _layers) {
+		activations.emplace_back(layer.forward(activations.back()));
+	}
+	const auto& predictions = activations.back();
+
+	const float loss = meanSquaredError(predictions, targets);
+	std::vector<float> gradients(predictions.size());
+	const float scale = 2.0f / static_cast<float>(predictions.size());
+
+	for (std::size_t i = 0; i < predictions.size(); ++i) {
+		gradients[i] = scale * (predictions[i] - targets[i]);
+	}
+
+	// Visit the first layer then move backwards
+	for (std::size_t i = _layers.size(); i > 0 ; --i) {
+		gradients = _layers[i - 1].backward(activations[i - 1], gradients, learningRate);
+	}
+
+	return loss;
+}

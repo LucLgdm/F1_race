@@ -44,22 +44,11 @@ float Neuron::forward(std::span<const float> inputs) const {
 	return activate(weightedSum(inputs), _activation);
 }
 
-void Neuron::train(std::span<const float> inputs, float target, float learningrate) {
-	if (!std::isfinite(learningrate) || learningrate <= 0.0f)
+void Neuron::train(std::span<const float> inputs, float target, float learningRate) {
+	if (!std::isfinite(learningRate) || learningRate <= 0.0f)
 		throw neuralError("Learning rate must be finite and positive");
-
-	const float z = weightedSum(inputs);
-	const float prediction = activate(z, _activation);
-	const float error = prediction - target;
-
-	const float zGradient = 2.0f * error * activationDerivative(z, _activation);
-
-	for (std::size_t i = 0; i < _weights.size(); ++i) {
-		const float weightGradient = zGradient * inputs[i];
-		_weights[i] -= learningrate * weightGradient;
-	}
-
-	_bias -= learningrate * zGradient;
+	const float error = forward(inputs) - target;
+	backward(inputs, 2.0f * error, learningRate);
 }
 
 float Neuron::weightedSum(std::span<const float> inputs) const {
@@ -71,4 +60,23 @@ float Neuron::weightedSum(std::span<const float> inputs) const {
 		z += _weights[i] * inputs[i];
 	}
 	return z;
+}
+
+std::vector<float> Neuron::backward(std::span<const float> inputs, float outputGradient, float learningRate) {
+	const float z = weightedSum(inputs);
+	const float delta = outputGradient * activationDerivative(z, _activation);
+	std::vector<float> inputGradients(inputs.size());
+
+	// Use the original weights to propragate the gradient
+	for (std::size_t i = 0; i < inputs.size(); ++i) {
+		inputGradients[i] = delta * _weights[i];
+	}
+
+	// Update the parameters
+	for (std::size_t i = 0; i < inputs.size(); ++i) {
+		_weights[i] -= learningRate * delta * inputs[i];
+	}
+	_bias -= learningRate * delta;
+
+	return inputGradients;
 }

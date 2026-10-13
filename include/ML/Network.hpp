@@ -20,6 +20,7 @@ class Network {
 		explicit Network(std::vector<Layer> layers);
 
 		[[nodiscard]] std::vector<float> forward(std::span<const float> inputs) const;
+		float train(std::span<const float> inputs, std::span<const float> targets, float learningRate);
 
 	private:
 		std::vector<Layer> _layers;
