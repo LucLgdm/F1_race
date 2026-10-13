@@ -12,6 +12,11 @@
 #include "ML/Network.hpp"
 #include "ML/Loss.hpp"
 
+struct Sample {
+	std::array<float, 1> inputs;
+	float target;
+};
+
 void testNeuron() {
 	// Neuron neuron{{0.4f, -0.2f}, 0.1f};
 	Neuron neuron{{1.0f}, 0.0f, Activation::Tanh};
@@ -66,3 +71,37 @@ void testNetwork() {
 	std::cout << "Loss: " << loss << std::endl;
 }
 
+void testTraining() {
+	Neuron neuron{1, Activation::Linear};
+
+	const std::array<Sample, 3> samples{{
+		{{-1.0f}, -1.0f},
+		{{ 0.0f},  1.0f},
+		{{ 1.0f},  3.0f}
+	}};
+
+	const auto averageLoss = [&]() {
+		float total = 0.0f;
+
+		for (const Sample& sample : samples) {
+			const float error = neuron.forward(sample.inputs) - sample.target;
+			total += error * error;
+		}
+		return total / static_cast<float>(samples.size());
+	};
+
+	std::cout << "Initial loss: " << averageLoss() << std::endl;
+
+	constexpr float learningRate = 0.05f;
+	for (int epoch = 1; epoch <= 300; ++epoch) {
+		for (const Sample& sample : samples) {
+			neuron.train(sample.inputs, sample.target, learningRate);
+		}
+		if (epoch % 50 == 0)
+			std::cout << "Epoch " << epoch << " | Loss: " << averageLoss() << std::endl;
+	}
+
+	// An input that was not used during training
+	const std::array<float, 1> inputs{0.5f};
+	std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected 2" << std::endl;
+}
