@@ -32,3 +32,18 @@ inline float activate(float z, Activation activation) {
 			throw neuralError("Unknown activation function.");
 	}
 }
+
+inline float activationDerivative(float z, Activation activation) {
+	switch (activation) {
+		case Activation::Linear:
+			return 1.0f;
+		case Activation::ReLU:
+			return z > 0.0f ? 1.0f : 0.0f;
+		case Activation::Tanh:
+		{
+			const float output = std::tanh(z);
+			return 1.0f - output * output;
+		}
+	}
+	throw neuralError("Unknown activation function: derivate");
+}

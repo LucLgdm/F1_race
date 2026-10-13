@@ -72,14 +72,22 @@ void testNetwork() {
 }
 
 void testTraining() {
-	Neuron neuron{1, Activation::Linear};
+	// Linear activation : y = 2x + 1
+	// Neuron neuron{1, Activation::Linear};
+	// const std::array<Sample, 3> samples{{
+	// 	{{-1.0f}, -1.0f},
+	// 	{{ 0.0f},  1.0f},
+	// 	{{ 1.0f},  3.0f}
+	// }};
 
+	// Tanh training
+	Neuron neuron{1, Activation::Tanh};
 	const std::array<Sample, 3> samples{{
-		{{-1.0f}, -1.0f},
-		{{ 0.0f},  1.0f},
-		{{ 1.0f},  3.0f}
+		{{-1.0f}, std::tanh(-1.0f)},
+		{{ 0.0f},  0.0f},
+		{{ 1.0f},  std::tanh(1.0f)}
 	}};
-
+	
 	const auto averageLoss = [&]() {
 		float total = 0.0f;
 
@@ -103,5 +111,6 @@ void testTraining() {
 
 	// An input that was not used during training
 	const std::array<float, 1> inputs{0.5f};
-	std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected 2" << std::endl;
+	// std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected 2" << std::endl;
+	std::cout << "Prediction for x = 0.5: " << neuron.forward(inputs) << " | Expected: " << std::tanh(0.5f) << std::endl;
 }

@@ -30,6 +30,8 @@ class Neuron {
 		[[nodiscard]] float forward(std::span<const float> inputs) const;
 
 		void train(std::span<const float> inputs, float target, float learningRate);
+		float weightedSum(std::span<const float> inputs) const;
+		
 
 	private:
 		std::vector<float> _weights;

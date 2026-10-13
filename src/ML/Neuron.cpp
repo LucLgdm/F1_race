@@ -41,32 +41,34 @@ Neuron::Neuron(std::size_t inputCount, Activation activation)
  ************************************************************/
 
 float Neuron::forward(std::span<const float> inputs) const {
-	if (inputs.size() != _weights.size())
-		throw neuralError("Input size does not match the number of weights.");
-
-	float sum = _bias;
-	for(std::size_t i = 0; i < inputs.size(); ++i) {
-		sum += inputs[i] * _weights[i];
-	}
-	return activate(sum, _activation);
+	return activate(weightedSum(inputs), _activation);
 }
 
 void Neuron::train(std::span<const float> inputs, float target, float learningrate) {
-	if (_activation != Activation::Linear)
-		throw neuralError("Training currently supports only linear acctivation");
 	if (!std::isfinite(learningrate) || learningrate <= 0.0f)
 		throw neuralError("Learning rate must be finite and positive");
 
-	const float prediction = this->forward(inputs);
+	const float z = weightedSum(inputs);
+	const float prediction = activate(z, _activation);
 	const float error = prediction - target;
 
-	// Derivate of the squared error with respect to prediction
-	const float outputGradient = 2.0f * error;
+	const float zGradient = 2.0f * error * activationDerivative(z, _activation);
 
 	for (std::size_t i = 0; i < _weights.size(); ++i) {
-		const float weightGradient = outputGradient * inputs[i];
+		const float weightGradient = zGradient * inputs[i];
 		_weights[i] -= learningrate * weightGradient;
 	}
 
-	_bias -= learningrate * outputGradient;
+	_bias -= learningrate * zGradient;
+}
+
+float Neuron::weightedSum(std::span<const float> inputs) const {
+	if (inputs.size() != _weights.size())
+		throw neuralError("Each input must have a corresponding weight");
+
+	float z = _bias;
+	for(std::size_t i = 0; i < inputs.size(); ++i) {
+		z += _weights[i] * inputs[i];
+	}
+	return z;
 }
