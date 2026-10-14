@@ -19,6 +19,7 @@
 #include "Car.hpp"
 #include "Track.hpp"
 #include "Renderer.hpp"
+#include "CarSensors.hpp"
 
 #include "ML/Network.hpp"
 #include "ML/Loss.hpp"

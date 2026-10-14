@@ -1,5 +1,5 @@
 /* ****************************************** */
-/*   Exception.hpp                         */
+/*   Exception.hpp                            */
 /*                                            */
 /*   By: Luc <lucdemercey@gmail.com>          */
 /*                                            */
@@ -40,6 +40,14 @@ class trackError : public exception {
 class neuralError : public exception {
 	public:
 		explicit neuralError(const std::string& m) : _msg(m) {}
+		const char* what() const noexcept override { return _msg.c_str(); }
+	private :
+		string _msg;
+};
+
+class carError : public exception {
+	public:
+		explicit carError(const std::string& m) : _msg(m) {}
 		const char* what() const noexcept override { return _msg.c_str(); }
 	private :
 		string _msg;

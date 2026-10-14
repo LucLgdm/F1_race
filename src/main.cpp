@@ -23,7 +23,14 @@ int main() {
 	try {
 		// app.init();
 		// app.run();
-		testNetworkTraining();
+		Track track{120.0f, 80.0f, 10.0f};
+		Car car{track.startPosition()};
+
+		const auto distances = measureWallDistances(car, track, 40.0f);
+
+		for (float distance : distances) {
+			std::cout << distance << '\n';
+		}
 	} catch (const std::exception& e) {
 		std::cerr << "Error: " << e.what() << std::endl;
 		return 1;

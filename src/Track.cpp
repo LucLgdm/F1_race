@@ -63,3 +63,56 @@ bool Track::canDrive(Vec2 position, float radius) const noexcept {
 	const float dy = position.y - closestY;
 	return (dx * dx + dy * dy) >= (radius * radius);
 }
+
+float Track::raycast(Vec2 origin, float angle, float maxDistance) const {
+	if (!std::isfinite(origin.x) || !std::isfinite(origin.y) || !std::isfinite(angle)
+		|| !std::isfinite(maxDistance) || maxDistance <= 0.0f)
+		throw trackError("Invalid raycast argument");
+	
+	const Vec2 direction{std::cos(angle), std::sin(angle)};
+	float closestDistance = maxDistance;
+
+	// Intersection with a vertical wall
+	const auto testVertical = [&](float x, float minY, float maxY) {
+		if (std::abs(direction.x) < 1e-6f)
+			return;
+		
+		const float distance = (x - origin.x) / direction.x;
+		if (distance < 0.0f || distance > closestDistance)
+			return;
+		
+		const float y = origin.y + distance * direction.y;
+		if (y >= minY && y <= maxY)
+			closestDistance = distance;
+	};
+
+	// Intresection with a horizontal wall
+	const auto testHorizontal = [&](float y, float minX, float maxX) {
+		if (std::abs(direction.y) < 1e-6f)
+			return;
+
+		const float distance = (y - origin.y) / direction.y;
+		if (distance < 0.0f || distance > closestDistance)
+			return;
+
+		const float x = origin.x + distance * direction.x;
+		if (x >= minX && x <= maxX)
+			closestDistance = distance;
+	};
+
+	const auto testRectangle = [&](float halfWidth, float halfHeight) {
+		testVertical(-halfWidth, -halfHeight, halfHeight);
+		testVertical( halfWidth, -halfHeight, halfHeight);
+
+		testHorizontal(-halfHeight, -halfWidth, halfWidth);
+		testHorizontal( halfHeight, -halfWidth, halfWidth);
+	};
+
+	// 4 external wall
+	testRectangle(_width / 2.0f, _height / 2.0f);
+
+	// 4 wall around the central zone
+	testRectangle(_width / 2.0f - _roadWidth, _height / 2.0f - _roadWidth);
+
+	return closestDistance;
+}
