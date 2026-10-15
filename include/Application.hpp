@@ -14,15 +14,11 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <algorithm>
 
 #include "Exception.hpp"
-#include "Car.hpp"
-#include "Track.hpp"
 #include "Renderer.hpp"
-#include "CarSensors.hpp"
-
-#include "ML/Network.hpp"
-#include "ML/Loss.hpp"
+#include "Simulation.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;
@@ -37,10 +33,13 @@ class Application {
 		void handleKey(CarControls&);
 
 	private:
-		GLFWwindow* _window;
+		GLFWwindow* _window = nullptr;
+		
 		Renderer _renderer;
-		Track _track{120.0f, 80.0f, 10.0f};
-		Car _car{Vec2{0.0f, 0.0f}};
+		bool _rendererReady = false;
+
+		Track _track{150.0f, 120.0f, 20.0f};
+		Simulation _simulation{_track};
 		
 		void initGLFW();
 		void initOpenGL();

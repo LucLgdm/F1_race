@@ -1,5 +1,5 @@
 /* ****************************************** */
-/*   Application.cpp                         */
+/*   Application.cpp                          */
 /*                                            */
 /*   By: Luc <lucdemercey@gmail.com>          */
 /*                                            */
@@ -12,10 +12,11 @@
 Application::Application() {}
 
 Application::~Application() {
-	glfwDestroyWindow(_window);
+	if (_rendererReady)
+		_renderer.shutdown();
+	if (_window)
+		glfwDestroyWindow(_window);
 	glfwTerminate();
-
-	_renderer.shutdown();
 }
 
 void Application::init() {
@@ -23,8 +24,7 @@ void Application::init() {
 	initOpenGL();				// Configure OpenGl global
 
 	_renderer.initialize();		// Initialize the renderer
-	_track = Track(120.0f, 80.0f, 20.0f); 
-	_car = Car(_track.startPosition());	// Initialize the car at the start position
+	_rendererReady = true;
 }
 
 void Application::run() {
@@ -35,8 +35,6 @@ void Application::run() {
 	
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
-		glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		const double time = glfwGetTime();
 		const double frameDt = time - lastTime;
@@ -49,21 +47,7 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
-			constexpr float sensorRange = 40.0f;
-			constexpr float maxSpeed = 50.0f;
-
-			const CarObservation observation = observeCar(_car, _track, sensorRange);
-			const std::array<float, 8> inputs = observation.normalized(sensorRange, maxSpeed);
-
-			// Copy car is allright because it contains only a few value and no OpenGL resource.
-			const Car previousState = _car; 
-			_car.update(controls, static_cast<float>(fixedDt));
-			
-			// Check if the car can move to the next position
-			if (!_track.canDrive(_car.position(), _car.collisionRadius())) {
-				_car = previousState; // Revert to the previous state if collision occurs
-				_car.stop(); // Stop the car if it collides with the track boundaries
-			}
+			_simulation.step(controls, static_cast<float>(fixedDt));
 			accumulator -= fixedDt;
 		}
 
@@ -72,9 +56,14 @@ void Application::run() {
 		int height = 0;
 		glfwGetFramebufferSize(_window, &width, &height);
 		if (width > 0 && height > 0) {
-			_renderer.beginFrame(_car.position(), width, height);
+			glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
+			const Car& car = _simulation.car();
+
+			_renderer.beginFrame(car.position(), width, height);
 			_renderer.drawTrack(_track);
-			_renderer.drawCar(_car);
+			_renderer.drawCar(car);
 		}	
 
 		glfwSwapBuffers(_window);

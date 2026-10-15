@@ -9,6 +9,7 @@ add_executable(F1_race
 	src/main.cpp
 	src/glad.c
 	src/Application.cpp
+	src/Simulation.cpp
 	src/Renderer.cpp
 	src/Car.cpp
 	src/Track.cpp
