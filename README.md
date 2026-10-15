@@ -2,7 +2,7 @@
 
 A top-down racing simulation written in modern C++20 with OpenGL. The player drives with the keyboard; the long-term goal is to add opponents controlled by a neural network implemented from scratch.
 
-This is a learning project: build a working simulation, understand neural-network inference, and then implement training before connecting the model to a car.
+This is a learning project: build a working simulation, implement neural networks from scratch, and compare autonomous driving learned through neuroevolution and reinforcement learning. Supervised examples are used to understand and check gradient-based training, rather than as the main driving strategy.
 
 ## Current progress
 
@@ -15,8 +15,13 @@ This is a learning project: build a working simulation, understand neural-networ
 - Neural-network forward passes through neurons, layers, and networks.
 - Configurable Linear, ReLU, and Tanh activations.
 - Mean squared error to evaluate predictions.
+- Random weight initialization, with biases initially set to zero.
+- Activation derivatives and gradient-descent training for individual neurons.
+- Backpropagation through complete dense networks, checked on a simple regression task.
+- Five wall-distance sensors, verified on the rectangular track.
+- Observation helpers for speed, track-relative heading, and eight normalized network inputs.
 
-Training, driving sensors, recorded demonstrations, and autonomous opponents are not implemented yet. Circuit shapes will be developed separately.
+Autonomous driving training is not implemented yet. The next stage is to extract a rendering-independent simulation and train a population of 10–20 cars through selection and mutation. Reinforcement learning with backpropagation will be added later for comparison. Model persistence, track/model association, and training display options are planned. Circuit shapes will be developed separately.
 
 ## Requirements and build
 
@@ -71,6 +76,8 @@ F1_race/
 ├── include/
 │   ├── Application.hpp
 │   ├── Car.hpp
+│   ├── CarObservation.hpp
+│   ├── CarSensors.hpp
 │   ├── Exception.hpp
 │   ├── Renderer.hpp
 │   ├── Track.hpp
@@ -101,7 +108,7 @@ F1_race/
         └── testML.cpp
 ```
 
-`Exception.hpp` and `note.txt` are also present; they are not part of the core simulation/ML separation described below. `testML.cpp` contains the project's ML demonstration/checking code, including examples such as `testNetwork()`.
+`CarObservation.hpp` and `CarSensors.hpp` are the observation headers introduced in the latest development steps. `Exception.hpp` and `note.txt` are also present. `testML.cpp` contains the ML examples, including single-neuron and whole-network training. Planned classes such as `Simulation`, `Agent`, and the trainers are not yet part of this layout.
 
 ## Architecture
 
@@ -134,6 +141,25 @@ renderer.drawCar(car);
 ```
 
 The track is drawn once per frame. Additional cars will be drawn using the same view and projection.
+
+### Planned orchestration and training architecture
+
+`Application` remains the orchestrator: select a circuit and training method, start or resume training, choose display options, and launch gameplay with a saved model. Physics and evaluation will be extracted from its current loop into a simulation that works without GLFW or OpenGL.
+
+| Planned component | Responsibility |
+| --- | --- |
+| `Simulation` | Advance the physical world at a fixed timestep, expose observations, detect collisions, track progress, and reset episodes |
+| `Agent` | Own one car, its network, its score, and its active/finished state |
+| `EvolutionTrainer` | Evaluate a population, select parents, retain elites, and mutate offspring |
+| `SupervisedTrainer` | Organize input/target examples using the existing gradient-based training methods |
+| `ReinforcementTrainer` | Later, implement a reward-based algorithm with a suitable gradient objective |
+| `Renderer` | Optionally draw the simulation, all agents or a selected agent, and sensor rays |
+
+These names describe the intended responsibilities, not completed interfaces. World stepping and agent ownership will be arranged so that every active car advances exactly once per simulation tick and all agents share the same track geometry.
+
+Training display is optional. Keep physics at `1 / 120` second; render every N simulation ticks, pause and advance one tick manually, or omit rendering entirely. Rendering less frequently must not increase the physical timestep or skip physics updates. Headless training need not wait for real time.
+
+The initial population will have no car-to-car collisions: each car is an independent driving trial on the same circuit. Displaying 20 cars does not require 20 threads; they can be updated sequentially during each fixed tick.
 
 ### Coordinates, camera, and vehicle motion
 
@@ -185,7 +211,51 @@ For a driving bot, observations could include distances to track boundaries and 
 | Unsupervised learning | Find structure in data without target answers | Not needed for our initial driving model |
 | Reinforcement learning | Learn actions through interaction and cumulative rewards | Later, reward progress and penalize collisions |
 
-Our initial plan is supervised imitation. Record observations and player commands, train on these pairs, and use the trained network to produce controls. Reinforcement learning can come later; rewards must encourage progress along the track, rather than speed alone.
+The driving plan has changed from imitation to autonomous trial and evaluation. The first approach will be neuroevolution; the second will be reinforcement learning using backpropagation. Both will share observations, control meanings, physics, and evaluation rules. Imitation remains a possible optional baseline, but recording player demonstrations is no longer the next implementation step.
+
+## Driving observations
+
+Five rays originate at the car centre and rotate with its heading. `Track::raycast()` checks the outer rectangle and the forbidden inner rectangle, returning the first wall intersection within the configured range. Measurements are from the centre, not from the collision-circle boundary.
+
+| Sensor | Offset from car heading |
+| --- | --- |
+| Left | +90 degrees |
+| Front-left | +45 degrees |
+| Front | 0 degrees |
+| Front-right | -45 degrees |
+| Right | -90 degrees |
+
+The current range is 40 metres. If no wall is encountered within that range, the measurement is 40 metres. The car uses direction `{cos(heading), sin(heading)}`; zero heading faces +X and positive angles turn left. Keyboard steering remains `-1 = left`, `+1 = right`, converted to the corresponding wheel angle in `Car::update()`.
+
+`CarObservation` contains the five distances, speed, and a signed heading error. `measureWallDistances()` measures the rays; `observeCar()` combines those measurements with the vehicle state and track reference heading. `normalized()` produces these eight inputs in a fixed order:
+
+| Index | Input | Encoding |
+| --- | --- | --- |
+| 0 | Left wall distance | distance / sensor range |
+| 1 | Front-left wall distance | distance / sensor range |
+| 2 | Front wall distance | distance / sensor range |
+| 3 | Front-right wall distance | distance / sensor range |
+| 4 | Right wall distance | distance / sensor range |
+| 5 | Speed | speed / 50 m/s |
+| 6 | Heading error | sine of the signed error |
+| 7 | Heading error | cosine of the signed error |
+
+The two orientation values avoid the discontinuity between angles near -pi and +pi. The reference direction is currently defined by the nearest segment of the rectangular track centreline, traversed clockwise. The upper straight points toward +X. The signed error is `car.heading() - track.referenceHeading(position)`, wrapped with `std::remainder()`.
+
+This reference heading changes abruptly at rectangular corners. A later track representation can provide a smoother tangent. It is an orientation observation, not yet a lap-progress or checkpoint implementation.
+
+Observations are computed before the corresponding physics update:
+
+```cpp
+const auto observation = observeCar(car, track, 40.0f);
+const auto inputs = observation.normalized(40.0f, 50.0f);
+// A future controller will turn network outputs into CarControls.
+car.update(controls, fixedDt);
+```
+
+For the 120 x 80 metre track with a 10 metre road, the initial centre position and zero heading give distances approximately `{5, 7.071, 40, 7.071, 5}`. At rest, normalized inputs are approximately `{0.125, 0.1768, 1, 0.1768, 0.125, 0, 0, 1}`. These five distance measurements have been checked.
+
+Three driving outputs are planned: steering, throttle, and brake. Their decoding must preserve steering in `[-1, 1]` and throttle/brake in `[0, 1]`. Activation selection and any remapping/clamping must be explicit and consistent during both training and gameplay. The final driving architecture is not fixed; its input layer must accept eight values.
 
 ## Neural-network implementation
 
@@ -193,10 +263,10 @@ Our initial plan is supervised imitation. Record observations and player command
 
 | Component | Responsibility |
 | --- | --- |
-| `Neuron` | Own weights, a bias, and an activation; compute one output |
-| `Layer` | Own several neurons and return their outputs |
-| `Network` | Own layers and pass each layer's outputs to the next |
-| `Activation.hpp` | Define Linear, ReLU, and Tanh and apply them |
+| `Neuron` | Own weights, a bias, and an activation; compute one output and backpropagate gradients |
+| `Layer` | Own several neurons; compute outputs and sum their input-gradient contributions |
+| `Network` | Own layers; run inference and supervised training through the full network |
+| `Activation.hpp` | Define Linear, ReLU, and Tanh and their derivatives |
 | `Loss.hpp` | Compute mean squared error |
 
 `std::vector` owns parameters and intermediate results. `std::span<const float>` provides read-only access to inputs without owning or copying them. Its referenced storage must remain valid during the call. The classes use value ownership; smart pointers and inheritance are unnecessary for the current design.
@@ -232,7 +302,9 @@ With ReLU, the output remains `0.14`. If the weighted sum is negative, ReLU retu
 | ReLU | $f(z)=\max(0,z)$ | Nonnegative |
 | Tanh | $f(z)=\tanh(z)$ | Between -1 and +1 |
 
-ReLU and Tanh introduce nonlinearity. Without nonlinear activations, stacking affine layers still produces an affine function. Tanh is suitable for a signed steering output; acceleration and braking will need an appropriate output interpretation as well. The current neuron constructor defaults to ReLU.
+ReLU and Tanh introduce nonlinearity. Without nonlinear activations, stacking affine layers still produces an affine function. Tanh is suitable for a signed steering output; acceleration and braking will need an appropriate output interpretation as well. The manual-weight constructor introduced ReLU as its default; the random-weight constructor introduced Linear as its default. Specify the activation explicitly when assembling a network.
+
+Random initialization currently samples each weight uniformly from `[-0.5, 0.5)` using `std::mt19937` seeded by `std::random_device`; biases start at zero. This is a simple initial scheme, not a fan-in-scaled initialization. Reproducible experiments will require explicit seed management.
 
 ### Layers and forward propagation
 
@@ -278,7 +350,7 @@ Squaring prevents positive and negative errors from cancelling. Matching predict
 
 ### Training: gradients and updates
 
-Training is the next implementation step. For one linear neuron with one input:
+Gradient-based training is implemented and has been exercised on single neurons and a complete network. For one linear neuron with one input:
 
 $$
 \hat y=wx+b,
@@ -307,7 +379,110 @@ For `x = 2`, target `y = 4`, initial `w = 0`, `b = 0`, and learning rate `0.1`, 
 
 Fitting that single example does not establish the general rule `y = 2x`: many parameter pairs fit it. Training on varied examples and evaluating on held-out data are needed to assess generalization.
 
-For nonlinear neurons, the gradient also includes the activation derivative. For multiple layers, backpropagation applies the chain rule backward through the network. Backpropagation calculates gradients; gradient descent uses those gradients to update parameters. Neither step is implemented yet.
+For nonlinear neurons, the gradient also includes the activation derivative. The implemented derivatives are Linear: `1`, ReLU: `z > 0 ? 1 : 0`, and Tanh: `1 - tanh(z)^2`. ReLU uses a derivative convention of zero at the nondifferentiable point `z = 0`.
+
+### What moves backwards between layers?
+
+The forward pass calculates every intermediate neuron output. We know those actual values; we do not know individual ideal targets for hidden neurons. There is no additional target-comparison error calculated between hidden layers.
+
+Instead, backpropagation passes the gradient of the final loss with respect to each intermediate value. For one neuron with output `a`, let `g` be the incoming gradient of the final loss with respect to `a`:
+
+$$
+\delta=g f'(z),\qquad
+\frac{\partial L}{\partial w_i}=\delta x_i,\qquad
+\frac{\partial L}{\partial b}=\delta,\qquad
+\frac{\partial L}{\partial x_i}=\delta w_i
+$$
+
+The input gradients are sent to the preceding layer. If several neurons depend on the same input, their contributions are added. Input gradients must be calculated with the weights used for the forward pass, before those weights are updated.
+
+### Current training methods
+
+| Method | Current behaviour | Used by neuroevolution? |
+| --- | --- | --- |
+| `forward()` | Compute outputs without changing parameters | Yes; inference is identical for every learning method |
+| `Neuron::backward()` | Calculate input gradients, update weights and bias, and return the input-gradient vector | No |
+| `Layer::backward()` | Call each neuron and sum input gradients | No |
+| `Network::train()` | Cache layer activations, calculate MSE gradients, traverse layers backwards, and return the pre-update loss | No |
+
+The implementation combines gradient calculation and parameter updates in `backward()`. Conceptually, backpropagation computes gradients and the optimizer uses them to update parameters. A future reinforcement trainer may need those operations separated for its own objective and update schedule.
+
+For MSE over N output values, the initial output gradient is:
+
+$$
+\frac{\partial L}{\partial \hat y_i}=\frac{2}{N}(\hat y_i-y_i)
+$$
+
+For an isolated neuron, `train()` supplies `2 * (prediction - target)` to `backward()`. Its returned input gradients can be discarded because there is no earlier trainable layer.
+
+`trainSupervised()` is a proposed clearer name for the current `train()` method; the rename is not assumed to be applied yet. Keep one shared `forward()`, rather than creating `forwardRetro()` and `forwardEvo()`. Separate network instances hold separately learned parameter sets, even though they use the same class and forward calculation.
+
+## Two autonomous learning approaches
+
+Backpropagation is a gradient-computation mechanism, not a complete reward-based learning algorithm. The two planned autonomous approaches use different ways to obtain parameters, while sharing inference and simulation.
+
+| Aspect | Neuroevolution: first implementation | Reinforcement learning: later comparison |
+| --- | --- | --- |
+| Experience | Complete driving trials from a population of networks | Interactions containing observations, actions, rewards, and episode endings |
+| Learning signal | Fitness score per trial | Rewards and an algorithm-specific learning objective |
+| Parameter changes | Parent selection, copying, and random mutations | Gradients calculated by backpropagation with a suitable optimizer |
+| Desired command labels | Not required | Not required |
+| Existing `forward()` | Reused | Reused |
+| Existing MSE `train()` alone | Not used | Insufficient to implement reward-based driving |
+| Status | Planned | Planned; no specific algorithm selected yet |
+
+Supervised learning is already implemented for numerical exercises and could support an optional imitation baseline. It needs known targets. A lap score cannot simply be passed as the three desired driving commands to the existing `train()` method.
+
+### Neuroevolution: population and generations
+
+Start with 10–20 independent agents. Each has the same network architecture but initially random weights, its own car state, and its own score. All start under the same evaluation conditions on the selected track.
+
+1. Run each active car using its network predictions.
+2. End a trial on collision, timeout, or another configured terminal condition.
+3. Evaluate the population when all trials end or the generation time limit is reached.
+4. Preserve the best network unchanged: elitism.
+5. Copy selected parent parameters into offspring and apply independent mutations.
+6. Reset the cars and begin the next generation.
+
+One proposed population of 20 is one unchanged elite, 17 independently mutated copies of the winner, and two newly randomized networks. This is a starting configuration, not implemented code or a guaranteed optimum. Selecting several parents can preserve diversity if a single-parent population stagnates.
+
+A mutation adds a small random perturbation to a weight or bias, optionally only for a sampled subset of parameters:
+
+$$
+w_{\mathrm{child}}=w_{\mathrm{parent}}+\varepsilon
+$$
+
+Copies must own their parameter storage independently. One offspring's mutation must not change its parent or another agent. Value ownership in the existing vectors supports this when ordinary deep copies are used. Parameter access/mutation APIs remain to be implemented.
+
+### Progress, rewards, and episode rules
+
+The initial fitness should prioritize the furthest valid forward progress around the circuit. Once agents complete laps, completion and lap time should influence ranking. Count progress along the route, not total movement distance: driving circles or shuttling backwards and forwards must not accumulate artificial progress.
+
+Ordered checkpoints and a validated finish-line crossing are planned to track direction and laps. The current `referenceHeading()` helper alone does not implement this. Collision penalties, maximum trial duration, and termination after prolonged lack of progress will bound trials.
+
+A possible per-step reward for later reinforcement learning combines signed route progress, elapsed-time cost, collision penalty, and a validated lap-completion bonus. Exact coefficients and fitness ranking remain to be chosen. Rewarding survival alone can favour stopping; rewarding speed alone can favour crashing; rewarding only completed laps gives beginners little feedback.
+
+### Comparing the approaches
+
+Use the same track versions, observation encodings, control meanings, collision rules, and evaluation scenarios. Where applicable, use the same policy-network architecture. Evaluate completion rate, successful lap times, progress, total environment steps, and training wall-clock time with rendering disabled. Count the steps of every agent, not just the number of generations. Repeat experiments with recorded seeds and report failed trials as well as successful laps.
+
+## Planned model persistence
+
+The intended workflow is: choose or create a track, train without mandatory rendering, save the learned model, and load its associated model for gameplay. A model per track is supported by the design; multi-track training could be explored later.
+
+A saved policy must include its architecture, activation choices, weights, biases, observation order, sensor range, normalization constants, output decoding, and compatible track identifier/version. Keep learning-method metadata and evaluation results with it. Resuming an entire evolutionary run also needs population and random-generator state; resuming reinforcement training may need optimizer and other algorithm state beyond the driving policy.
+
+Example future organization (not files already created):
+
+```text
+circuits/
+    rectangle.track
+models/
+    rectangle_evolution.network
+    rectangle_reinforcement.network
+```
+
+Changing the track or observation format can invalidate an association or require retraining. Model loading, saving, and automatic track/model selection are not implemented yet.
 
 ## Checks while developing
 
@@ -325,15 +500,36 @@ Input counts must match neuron weight counts, and each layer must produce the in
 
 ## Roadmap
 
-1. Train a single linear neuron on several simple examples.
-2. Implement activation derivatives and backpropagation through layers.
-3. Initialize weights appropriately and train a complete small network.
-4. Add numerical observations, such as ray distances to track boundaries and speed.
-5. Normalize observations and record player demonstrations with matching commands.
-6. Separate training and validation data, train an imitation model, and evaluate it in the simulation.
-7. Connect predictions to `CarControls`, persist learned parameters, and add opponents.
-8. Improve recovery behaviours and consider reinforcement learning.
+Completed or introduced in the current learning steps:
 
-Imitation has a limitation: a bot's errors can put it into situations absent from the recorded demonstrations. Recovery examples and later training improvements will be important. Multi-car racing will also require observations of other cars; track-boundary sensors alone will not teach overtaking or avoidance.
+- Neurons, dense layers, networks, configurable activations, and MSE.
+- Random initialization and single-neuron gradient-descent training.
+- Full-network backpropagation and numerical regression examples.
+- Five verified wall-distance sensors, normalized observations, and a rectangular-track reference-heading helper.
 
-The immediate goal is understanding the learning loop before integrating it with driving: predict, measure error, calculate gradients, and update parameters.
+Next implementation stages:
+
+1. Extract physics, observations, collision reporting, and reset behaviour into a rendering-independent simulation.
+2. Define network-output decoding into steering, throttle, and brake.
+3. Add ordered checkpoints, forward progress, lap validation, timeouts, and trial scoring.
+4. Add an agent population with independently owned cars and networks.
+5. Implement parameter copying and mutation, elite preservation, and generation management.
+6. Add training controls in `Application`: track selection, optional rendering, rendering interval, single-step mode, selected-agent tracking, and optional ray display.
+7. Save/load policies and associate compatible models with each track.
+8. Add a reinforcement-learning trainer using backpropagation and compare both autonomous approaches under common evaluation rules.
+
+Multi-car display initially represents independent trials, without physical interactions between agents. Actual racing, overtaking, and avoidance of other cars will need additional observations and evaluation rules.
+
+## Observed training results
+
+These are results from the development examples, not autonomous lap-performance measurements or exhaustive gradient checks. Random initialization can produce different convergence curves.
+
+| Exercise | Observed result |
+| --- | --- |
+| One Linear neuron learning `y = 2x + 1` | Loss about `1.52e-13`; prediction at `x = 0.5`: `2` |
+| One Tanh neuron learning `y = tanh(x)` | Loss about `3.80e-12`; prediction at `x = 0.5`: `0.462115`, expected about `0.462117` |
+| Network `1 -> 4 Tanh -> 1 Linear`, learning `y = 2x + 1` | Loss fell from `2.63022` to `0.000467665` after 3000 epochs; prediction at `x = 0.25`: `1.51397`, expected `1.5` |
+
+The network regression example trains on 21 values from -1 to +1 in increments of 0.1; 0.25 is an additional interpolation check. These examples establish useful learning behaviour but do not prove correctness on every architecture or generalization beyond the tested domain.
+
+Development checks also caught contradictory sample targets and an uninitialized layer-construction loop counter. Initialize loop counters (`std::size_t i = 0`) and remember that `reserve()` allocates capacity without creating elements.
