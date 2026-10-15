@@ -49,6 +49,12 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
+			constexpr float sensorRange = 40.0f;
+			constexpr float maxSpeed = 50.0f;
+
+			const CarObservation observation = observeCar(_car, _track, sensorRange);
+			const std::array<float, 8> inputs = observation.normalized(sensorRange, maxSpeed);
+
 			// Copy car is allright because it contains only a few value and no OpenGL resource.
 			const Car previousState = _car; 
 			_car.update(controls, static_cast<float>(fixedDt));

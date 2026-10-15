@@ -116,3 +116,43 @@ float Track::raycast(Vec2 origin, float angle, float maxDistance) const {
 
 	return closestDistance;
 }
+
+float Track::referenceHeading(Vec2 position) const {
+	const float halfWidth = (_width - _roadWidth) / 2.0f;
+	const float halfHeight = (_height - _roadWidth) / 2.0f;
+
+	// Central line in clockwise
+	const std::array<Vec2, 4> corners{{
+		{-halfWidth,  halfHeight},
+		{ halfWidth,  halfHeight},
+		{ halfWidth, -halfHeight},
+		{-halfWidth, -halfHeight}
+	}};
+	float closestSquaredDistance = std::numeric_limits<float>::max();
+	float heading = 0.0f;
+
+	for (std::size_t i = 0; i < corners.size(); ++i) {
+		const Vec2 start = corners[i];
+		const Vec2 end = corners[(i + 1) % corners.size()];
+
+		const float dx = end.x - start.x;
+		const float dy = end.y - start.y;
+		const float squaredLength = dx * dx + dy * dy;
+
+		// Projection of the position on the segment
+		const float t = std::clamp(((position.x - start.x) * dx + (position.y - start.y) * dy) / squaredLength,
+									0.0f, 1.0f);
+		const float closestX = start.x + t * dx;
+		const float closestY = start.y + t * dy;
+
+		const float offsetX = position.x - closestX;
+		const float offsetY = position.y - closestY;
+		const float squaredDistance = offsetX * offsetX + offsetY * offsetY;
+
+		if (squaredDistance < closestSquaredDistance) {
+			closestSquaredDistance = squaredDistance;
+			heading = std::atan2(dy, dx);
+		}
+	}
+	return heading;
+}

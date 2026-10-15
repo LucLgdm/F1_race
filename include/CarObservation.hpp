@@ -20,7 +20,7 @@ struct CarObservation {
 	float headingError = 0.0f;	// in radian
 
 	[[nodiscard]] std::array<float, 8> normalized(float sensorRange, float maxSpeed) const {
-		if (sensorRange <= 0.0f || max <= 0.0f)
+		if (sensorRange <= 0.0f || maxSpeed <= 0.0f)
 			throw carError("SensorRange and maxSpeed must be strict positive");
 
 		return {wallDistance[0] / sensorRange,

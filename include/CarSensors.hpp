@@ -11,9 +11,11 @@
 
 #include <array>
 #include <numbers>
+#include <cmath>
 
 #include "Car.hpp"
 #include "Track.hpp"
+#include "CarObservation.hpp"
 
 [[nodiscard]] inline std::array<float, 5> measureWallDistances(const Car& car, const Track& track, float sensorRange) {
 	constexpr float pi = std::numbers::pi_v<float>;
@@ -25,4 +27,15 @@
 		distances[i] = track.raycast(car.position(), car.heading() + offsets[i], sensorRange);
 	}
 	return distances;
+}
+
+[[nodiscard]] inline CarObservation observeCar(const Car& car, const Track& track, float sensorRange) {
+	CarObservation observation;
+	observation.wallDistance = measureWallDistances(car, track, sensorRange);
+	observation.speed = car.speed();
+
+	const float trackHeading = track.referenceHeading(car.position());
+	observation.headingError = std::remainder(car.heading() - trackHeading, 2.0f * std::numbers::pi_v<float>);
+
+	return observation;
 }

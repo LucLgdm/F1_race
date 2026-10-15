@@ -12,6 +12,7 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "Vec2.hpp"
 #include "Exception.hpp"
@@ -31,7 +32,7 @@ class Track {
 
 		[[nodiscard]] bool canDrive(Vec2 position, float radius) const noexcept;
 		[[nodiscard]] float raycast(Vec2 origin, float angle, float maxDistance) const;
-		
+		[[nodiscard]] float referenceHeading(Vec2 position) const;
 
 	private:
 		std::array<RoadSection, 4> _sections{};
