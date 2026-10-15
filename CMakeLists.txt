@@ -33,3 +33,26 @@ target_link_libraries(F1_race PRIVATE
     glfw
     OpenGL::GL
 )
+
+# Tests automatiques
+include(CTest)
+
+if(BUILD_TESTING)
+	find_package(Catch2 3 CONFIG REQUIRED)
+
+	add_executable(F1_tests
+		tests/test_loss.cpp
+		tests/test_neuron.cpp
+		src/ML/Neuron.cpp
+	)
+
+	target_include_directories(F1_tests PRIVATE
+		"${CMAKE_CURRENT_SOURCE_DIR}/include"
+	)
+
+	target_compile_features(F1_tests PRIVATE cxx_std_20)
+	target_link_libraries(F1_tests PRIVATE Catch2::Catch2WithMain)
+
+	include(Catch)
+	catch_discover_tests(F1_tests)
+endif()
