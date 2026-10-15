@@ -1,0 +1,42 @@
+name: Tests C++
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v5
+
+      - name: Installer MSYS2 et les dependances
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-catch
+            mingw-w64-ucrt-x86_64-glfw
+
+      - name: Configurer CMake
+        run: cmake -S . -B build-ci -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Compiler les tests
+        run: cmake --build build-ci --target F1_tests
+
+      - name: Executer les tests
+        run: ctest --test-dir build-ci --output-on-failure --no-tests=error
