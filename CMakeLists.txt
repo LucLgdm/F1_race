@@ -17,6 +17,7 @@ add_executable(F1_race
 	src/ML/Layer.cpp
 	src/ML/Network.cpp
 	src/ML/testML.cpp
+	src/ML/Agent.cpp
 )
 
 target_compile_features(F1_race PRIVATE cxx_std_20)

@@ -18,7 +18,7 @@
 
 #include "Exception.hpp"
 #include "Renderer.hpp"
-#include "Simulation.hpp"
+#include "ML/Agent.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;
@@ -39,8 +39,8 @@ class Application {
 		bool _rendererReady = false;
 
 		Track _track{150.0f, 120.0f, 20.0f};
-		Simulation _simulation{_track};
-		
+		Agent _agent{_track};
+
 		void initGLFW();
 		void initOpenGL();
 };

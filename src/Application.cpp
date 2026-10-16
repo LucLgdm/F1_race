@@ -47,7 +47,7 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
-			_simulation.step(controls, static_cast<float>(fixedDt));
+			_agent.step(static_cast<float>(fixedDt));
 			accumulator -= fixedDt;
 		}
 
@@ -59,7 +59,7 @@ void Application::run() {
 			glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
-			const Car& car = _simulation.car();
+			const Car& car = _agent.car();
 
 			_renderer.beginFrame(car.position(), width, height);
 			_renderer.drawTrack(_track);
