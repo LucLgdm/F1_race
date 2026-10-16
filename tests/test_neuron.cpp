@@ -15,35 +15,35 @@
 #include "ML/Neuron.hpp"
 
 TEST_CASE("Le neurone calcule sa somme ponderee", "[neuron]") {
-    const Neuron neuron({0.4f, -0.2f}, 0.1f, Activation::Linear);
-    const std::array<float, 2> inputs{0.5f, 0.8f};
+	const Neuron neuron({0.4f, -0.2f}, 0.1f, Activation::Linear);
+	const std::array<float, 2> inputs{0.5f, 0.8f};
 
-    // 0.4 × 0.5 - 0.2 × 0.8 + 0.1 = 0.14
-    REQUIRE(neuron.weightedSum(inputs) == Catch::Approx(0.14f));
-    REQUIRE(neuron.forward(inputs) == Catch::Approx(0.14f));
+	// 0.4 × 0.5 - 0.2 × 0.8 + 0.1 = 0.14
+	REQUIRE(neuron.weightedSum(inputs) == Catch::Approx(0.14f));
+	REQUIRE(neuron.forward(inputs) == Catch::Approx(0.14f));
 }
 
 TEST_CASE("ReLU annule une somme negative", "[neuron]") {
-    const Neuron neuron({1.0f, -2.0f}, 0.0f, Activation::ReLU);
-    const std::array<float, 2> inputs{1.0f, 1.0f};
+	const Neuron neuron({1.0f, -2.0f}, 0.0f, Activation::ReLU);
+	const std::array<float, 2> inputs{1.0f, 1.0f};
 
-    // Somme = -1 ; ReLU(-1) = 0.
-    REQUIRE(neuron.weightedSum(inputs) == Catch::Approx(-1.0f));
-    REQUIRE(neuron.forward(inputs) == 0.0f);
+	// Somme = -1 ; ReLU(-1) = 0.
+	REQUIRE(neuron.weightedSum(inputs) == Catch::Approx(-1.0f));
+	REQUIRE(neuron.forward(inputs) == 0.0f);
 }
 
 TEST_CASE("ReLU conserve une somme positive", "[neuron]") {
-    const Neuron neuron({1.0f, 2.0f}, 0.5f, Activation::ReLU);
-    const std::array<float, 2> inputs{1.0f, 1.0f};
+	const Neuron neuron({1.0f, 2.0f}, 0.5f, Activation::ReLU);
+	const std::array<float, 2> inputs{1.0f, 1.0f};
 
-    REQUIRE(neuron.forward(inputs) == Catch::Approx(3.5f));
+	REQUIRE(neuron.forward(inputs) == Catch::Approx(3.5f));
 }
 
 TEST_CASE("Le neurone refuse un nombre incorrect d'entrees", "[neuron]") {
-    const Neuron neuron({0.4f, -0.2f}, 0.1f);
-    const std::array<float, 1> inputs{0.5f};
+	const Neuron neuron({0.4f, -0.2f}, 0.1f);
+	const std::array<float, 1> inputs{0.5f};
 
-    REQUIRE_THROWS_AS(neuron.forward(inputs), neuralError);
+	REQUIRE_THROWS_AS(neuron.forward(inputs), neuralError);
 }
 
 /***************************************************************

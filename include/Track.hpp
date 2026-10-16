@@ -33,6 +33,8 @@ class Track {
 		[[nodiscard]] bool canDrive(Vec2 position, float radius) const noexcept;
 		[[nodiscard]] float raycast(Vec2 origin, float angle, float maxDistance) const;
 		[[nodiscard]] float referenceHeading(Vec2 position) const;
+		[[nodiscard]] float length() const noexcept;
+		[[nodiscard]] float progressAt(Vec2 position) const;
 
 	private:
 		std::array<RoadSection, 4> _sections{};

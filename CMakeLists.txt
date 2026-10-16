@@ -44,7 +44,9 @@ if(BUILD_TESTING)
 	add_executable(F1_tests
 		tests/test_loss.cpp
 		tests/test_neuron.cpp
+		tests/test_track.cpp
 		src/ML/Neuron.cpp
+		src/Track.cpp
 	)
 
 	target_include_directories(F1_tests PRIVATE

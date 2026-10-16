@@ -117,6 +117,11 @@ float Track::raycast(Vec2 origin, float angle, float maxDistance) const {
 	return closestDistance;
 }
 
+/***************************************************************
+ * Same method for both function : projection of the position
+ * on the central segment the closeset
+ ***************************************************************/
+
 float Track::referenceHeading(Vec2 position) const {
 	const float halfWidth = (_width - _roadWidth) / 2.0f;
 	const float halfHeight = (_height - _roadWidth) / 2.0f;
@@ -155,4 +160,56 @@ float Track::referenceHeading(Vec2 position) const {
 		}
 	}
 	return heading;
+}
+
+float Track::progressAt(Vec2 position) const {
+	const float halfWidth  = (_width  - _roadWidth) / 2.0f;
+	const float halfHeight = (_height - _roadWidth) / 2.0f;
+	const std::array<Vec2, 4> corners{{
+		{-halfWidth,  halfHeight},
+		{ halfWidth,  halfHeight},
+		{ halfWidth, -halfHeight},
+		{-halfWidth, -halfHeight}
+	}};
+
+	float closestSquaredDistance = std::numeric_limits<float>::max();
+	float closestProgress = 0.0f;
+	float distanceBeforeSegment = 0.0f;
+
+	for (std::size_t i = 0; i < corners.size(); ++i) {
+		const Vec2 start = corners[i];
+		const Vec2 end   = corners[(i + 1) % corners.size()];
+
+		const float dx = end.x - start.x;
+		const float dy = end.y - start.y;
+
+		const float squaredLength = dx * dx + dy * dy;
+		const float segmentLength = std::sqrt(squaredLength);
+
+		const float t = std::clamp(((position.x - start.x) * dx + (position.y - start.y) * dy) / squaredLength, 0.0f, 1.0f);
+
+		const float offsetX = position.x - (start.x + t * dx);
+		const float offsetY = position.y - (start.y + t * dy);
+
+		const float squaredDistance = offsetX * offsetX + offsetY * offsetY;
+		if (squaredDistance < closestSquaredDistance) {
+			closestSquaredDistance = squaredDistance;
+			closestProgress = distanceBeforeSegment + t * segmentLength;
+		}
+		distanceBeforeSegment += segmentLength;
+	}
+
+	// Move the origin of the upper left corner to the middle of the rigth upper line
+	float progress = closestProgress - halfWidth;
+	if (progress < 0.0f)
+		progress += length();
+
+	return progress;
+}
+
+float Track::length() const noexcept {
+	const float centerWidth = _width - _roadWidth;
+	const float centerHeight = _height - _roadWidth;
+
+	return 2.0f * (centerWidth + centerHeight);
 }
