@@ -15,6 +15,11 @@ Agent::Agent(const Track& track):
 			Layer{8, 16, Activation::Tanh}, Layer{16, 16, Activation::Tanh}, Layer{16, 3, Activation::Tanh}
 	}) {}
 
+Agent::Agent(const Track& track, Vec2 startPosition):
+	 _simulation(track, startPosition), _network(std::vector<Layer>{
+			Layer{8, 16, Activation::Tanh}, Layer{16, 16, Activation::Tanh}, Layer{16, 3, Activation::Tanh}
+	}) {}
+
 void Agent::step(float dt) {
 	if (!_active)
 		return;

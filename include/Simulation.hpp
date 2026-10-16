@@ -17,6 +17,7 @@
 class Simulation {
 	public:
 		explicit Simulation(const Track& track);
+		Simulation(const Track& track, Vec2 startPosition);
 
 		// return true if a collision happend
 		bool step(const CarControls& controls, float dt);
@@ -27,6 +28,7 @@ class Simulation {
 
 	private:
 		const Track& _track;
+		Vec2 _startPosition;
 		Car _car;
 
 		static constexpr float sensorRange = 40.0f;

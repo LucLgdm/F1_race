@@ -11,6 +11,11 @@
 
 Simulation::Simulation(const Track& track): _track(track), _car(track.startPosition()) {}
 
+Simulation::Simulation(const Track& track, Vec2 startPosition): _track(track), _startPosition(startPosition), _car(startPosition) {
+	if (!_track.canDrive(startPosition, _car.collisionRadius()))
+		throw trackError("Invalid starting position");
+}
+
 bool Simulation::step(const CarControls& controls, float dt) {
 	const Car previousState = _car;
 	_car.update(controls, dt);
@@ -24,7 +29,7 @@ bool Simulation::step(const CarControls& controls, float dt) {
 }
 
 void Simulation::reset() {
-	_car = Car{_track.startPosition()};
+	_car = Car{_startPosition};
 }
 
 const Car& Simulation::car() const noexcept {

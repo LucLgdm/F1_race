@@ -25,6 +25,21 @@ void Application::init() {
 
 	_renderer.initialize();		// Initialize the renderer
 	_rendererReady = true;
+
+	// Initialize the agents, the car are positionned like a real F1 departure
+	constexpr std::size_t populationSize = 20;
+	constexpr float longitudinalOffset = 3.0f;
+	constexpr float lateralOffset = 3.0f;
+	const Vec2 center = _track.startPosition();
+	const float halfGridLength = static_cast<float>(populationSize - 1) * longitudinalOffset / 2.0f;
+
+	_agents.reserve(populationSize);
+	for (std::size_t i = 0; i < populationSize; ++i) {
+		const float side = (i % 2 == 0) ? 1.0f : -1.0f;
+		const Vec2 startPosition{center.x + halfGridLength - static_cast<float>(i) * longitudinalOffset,
+								 center.y + side * lateralOffset};
+		_agents.emplace_back(_track, startPosition);
+	}
 }
 
 void Application::run() {
@@ -47,7 +62,8 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
-			_agent.step(static_cast<float>(fixedDt));
+			for (Agent& agent : _agents)
+				agent.step(static_cast<float>(fixedDt));
 			accumulator -= fixedDt;
 		}
 
@@ -59,11 +75,11 @@ void Application::run() {
 			glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
-			const Car& car = _agent.car();
-
-			_renderer.beginFrame(car.position(), width, height);
+			// The camera follows only the first car
+			_renderer.beginFrame(_agents.front().car().position(), width, height);
 			_renderer.drawTrack(_track);
-			_renderer.drawCar(car);
+			for (const Agent& agent : _agents)
+				_renderer.drawCar(agent.car());
 		}	
 
 		glfwSwapBuffers(_window);

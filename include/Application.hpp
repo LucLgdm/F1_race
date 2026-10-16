@@ -38,8 +38,8 @@ class Application {
 		Renderer _renderer;
 		bool _rendererReady = false;
 
-		Track _track{150.0f, 120.0f, 20.0f};
-		Agent _agent{_track};
+		Track _track{800.0f, 500.0f, 20.0f};
+		std::vector<Agent> _agents;
 
 		void initGLFW();
 		void initOpenGL();
