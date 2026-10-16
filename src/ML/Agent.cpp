@@ -10,16 +10,11 @@
 #include "ML/Agent.hpp"
 #include <iostream>
 
-Agent::Agent(const Track& track): _track(track), _simulation(track),
-			_network(std::vector<Layer>{Layer{8, 16, Activation::Tanh},
-										Layer{16, 16, Activation::Tanh},
-										Layer{16, 3, Activation::Tanh}}),
+Agent::Agent(const Track& track, Vec2 startPosition): _track(track), _simulation(track, startPosition),
+				_network(std::vector<Layer>{Layer{8 , 16, Activation::Tanh},
+											Layer{16, 16, Activation::Tanh},
+											Layer{16, 3, Activation::Tanh}}),
 			_progress(track.length(), track.progressAt(startPosition)) {}
-
-Agent::Agent(const Track& track, Vec2 startPosition):
-	 _simulation(track, startPosition), _network(std::vector<Layer>{
-			Layer{8, 16, Activation::Tanh}, Layer{16, 16, Activation::Tanh}, Layer{16, 3, Activation::Tanh}
-	}) {}
 
 void Agent::step(float dt) {
 	if (!_active)
@@ -44,12 +39,6 @@ void Agent::step(float dt) {
 		_active = false;
 }
 
-void Agent::reset() {
-	_simulation.reset();
-	_active = true;
-	_elapsedTime = 0.0f;
-}
-
 const Car& Agent::car() const noexcept {
 	return _simulation.car();
 }
@@ -63,12 +52,12 @@ float Agent::progress() const noexcept {
 }
 
 float Agent::bestProgress() const noexcept {
-	return _bestProgress();
+	return _progress.bestProgress();
 }
 
 void Agent::reset() {
 	_simulation.reset();
-	_progress.reset(_track.progressAt(_simulation.cqr().position()));
+	_progress.reset(_track.progressAt(_simulation.car().position()));
 	_active = true;
 	_elapsedTime = 0.0f;
 }

@@ -61,4 +61,22 @@ if(BUILD_TESTING)
 
 	include(Catch)
 	catch_discover_tests(F1_tests)
+	
+	# Code Coverage
+	option(ENABLE_COVERAGE "Enable code coverage" OFF)
+
+	if(ENABLE_COVERAGE)
+		foreach(target IN ITEMS F1_race F1_tests)
+			target_compile_options(${target} PRIVATE
+				--coverage
+				-O0
+				-g
+			)
+
+
+			target_link_options(${target} PRIVATE
+				--coverage
+			)
+		endforeach()
+	endif()
 endif()

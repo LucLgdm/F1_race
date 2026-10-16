@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests-b12d07c_tests.cmake")
+  include("C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests-b12d07c_tests.cmake")
+else()
+  add_test(F1_tests_NOT_BUILT-b12d07c F1_tests_NOT_BUILT-b12d07c)
+endif()

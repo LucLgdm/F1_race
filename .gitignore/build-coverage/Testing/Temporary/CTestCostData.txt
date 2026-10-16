@@ -1,0 +1,20 @@
+La MSE correspond au calcul attendu 2 0.015143
+La MSE est nulle pour des predictions exactes 2 0.013973
+La MSE refuse des entrees vides 2 0.0140783
+La MSE refuse des tailles differentes 2 0.0142675
+La longueur suit la ligne centrale du circuit 2 0.0145109
+La progression commence a zero quelle que soit la grille 2 0.0157754
+La progression cumule plusieurs passages par zero 2 0.0155903
+La progression est nulle au depart 2 0.0132875
+La progression gere le passage de la ligne dans les deux sens 2 0.0134796
+La progression projette la voiture sur la ligne centrale 2 0.012661
+La progression revient a zero a la ligne de depart 2 0.0127934
+La progression suit le circuit dans le sens horaire 2 0.0121362
+Le neurone calcule sa somme ponderee 2 0.01354
+Le neurone effectue une etape d'apprentissage 2 0.0123024
+Le neurone refuse un nombre incorrect d'entrees 2 0.0136385
+ReLU annule une somme negative 2 0.0122597
+ReLU conserve une somme positive 2 0.0142218
+Reset efface la progression et utilise le nouveau depart 2 0.0156551
+Revenir sur ses pas ne rapporte pas une nouvelle progression 2 0.0164494
+---

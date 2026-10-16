@@ -1,4 +1,4 @@
-name: Tests C++
+name: Tests C++ et couverture
 
 on:
   push:
@@ -31,12 +31,41 @@ jobs:
             mingw-w64-ucrt-x86_64-ninja
             mingw-w64-ucrt-x86_64-catch
             mingw-w64-ucrt-x86_64-glfw
+            mingw-w64-ucrt-x86_64-gcovr
 
-      - name: Configurer CMake
-        run: cmake -S . -B build-ci -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+      - name: Configurer CMake avec la couverture
+        run: >-
+          cmake -S . -B build-ci -G Ninja
+          -DBUILD_TESTING=ON
+          -DENABLE_COVERAGE=ON
+          -DCMAKE_BUILD_TYPE=Debug
 
-      - name: Compiler les tests
-        run: cmake --build build-ci --target F1_tests
+      - name: Compiler tout le projet
+        run: cmake --build build-ci
 
       - name: Executer les tests
+        id: tests
         run: ctest --test-dir build-ci --output-on-failure --no-tests=error
+
+      - name: Generer le rapport de couverture
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        run: |
+          mkdir -p coverage
+          gcovr --root . \
+                --filter 'src/' \
+                --filter 'include/' \
+                --exclude 'src/glad\.c$' \
+                --exclude 'include/glad/' \
+                --exclude 'include/glm/' \
+                --exclude 'include/KHR/' \
+                --html-details coverage/index.html \
+                build-ci
+
+      - name: Publier le rapport en artefact
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rapport-couverture
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: error

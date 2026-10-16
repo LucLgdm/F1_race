@@ -20,8 +20,7 @@
 
 class Agent {
 	public:
-		explicit Agent(const Track& track);
-		Agent(const Track& track, Vec2 startPosition);
+		explicit Agent(const Track& track, Vec2 startPosition);
 
 		void step(float dt);
 		void reset();

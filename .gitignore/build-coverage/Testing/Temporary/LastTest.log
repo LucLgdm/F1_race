@@ -1,0 +1,383 @@
+Start testing: Oct 16 15:27 Paris, Madrid (heure d’été)
+----------------------------------------------------------
+1/19 Testing: La MSE correspond au calcul attendu
+1/19 Test: La MSE correspond au calcul attendu
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La MSE correspond au calcul attendu"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La MSE correspond au calcul attendu" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La MSE correspond au calcul attendu"
+Randomness seeded to: 4177829420
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La MSE correspond au calcul attendu" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La MSE correspond au calcul attendu" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/19 Testing: La MSE est nulle pour des predictions exactes
+2/19 Test: La MSE est nulle pour des predictions exactes
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La MSE est nulle pour des predictions exactes"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La MSE est nulle pour des predictions exactes" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La MSE est nulle pour des predictions exactes"
+Randomness seeded to: 3236974327
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La MSE est nulle pour des predictions exactes" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La MSE est nulle pour des predictions exactes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/19 Testing: La MSE refuse des entrees vides
+3/19 Test: La MSE refuse des entrees vides
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La MSE refuse des entrees vides"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La MSE refuse des entrees vides" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La MSE refuse des entrees vides"
+Randomness seeded to: 1833172440
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La MSE refuse des entrees vides" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La MSE refuse des entrees vides" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/19 Testing: La MSE refuse des tailles differentes
+4/19 Test: La MSE refuse des tailles differentes
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La MSE refuse des tailles differentes"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La MSE refuse des tailles differentes" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La MSE refuse des tailles differentes"
+Randomness seeded to: 3560247265
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La MSE refuse des tailles differentes" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La MSE refuse des tailles differentes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/19 Testing: La longueur suit la ligne centrale du circuit
+5/19 Test: La longueur suit la ligne centrale du circuit
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La longueur suit la ligne centrale du circuit"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La longueur suit la ligne centrale du circuit" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La longueur suit la ligne centrale du circuit"
+Randomness seeded to: 645194532
+===============================================================================
+All tests passed (3 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La longueur suit la ligne centrale du circuit" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La longueur suit la ligne centrale du circuit" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/19 Testing: La progression commence a zero quelle que soit la grille
+6/19 Test: La progression commence a zero quelle que soit la grille
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression commence a zero quelle que soit la grille"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression commence a zero quelle que soit la grille" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression commence a zero quelle que soit la grille"
+Randomness seeded to: 3664330091
+===============================================================================
+All tests passed (6 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression commence a zero quelle que soit la grille" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression commence a zero quelle que soit la grille" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/19 Testing: La progression cumule plusieurs passages par zero
+7/19 Test: La progression cumule plusieurs passages par zero
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression cumule plusieurs passages par zero"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression cumule plusieurs passages par zero" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression cumule plusieurs passages par zero"
+Randomness seeded to: 3192152942
+===============================================================================
+All tests passed (2 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression cumule plusieurs passages par zero" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression cumule plusieurs passages par zero" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/19 Testing: La progression est nulle au depart
+8/19 Test: La progression est nulle au depart
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression est nulle au depart"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression est nulle au depart" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression est nulle au depart"
+Randomness seeded to: 2459914433
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression est nulle au depart" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression est nulle au depart" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/19 Testing: La progression gere le passage de la ligne dans les deux sens
+9/19 Test: La progression gere le passage de la ligne dans les deux sens
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression gere le passage de la ligne dans les deux sens"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression gere le passage de la ligne dans les deux sens" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression gere le passage de la ligne dans les deux sens"
+Randomness seeded to: 2037463561
+===============================================================================
+All tests passed (4 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression gere le passage de la ligne dans les deux sens" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression gere le passage de la ligne dans les deux sens" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/19 Testing: La progression projette la voiture sur la ligne centrale
+10/19 Test: La progression projette la voiture sur la ligne centrale
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression projette la voiture sur la ligne centrale"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression projette la voiture sur la ligne centrale" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression projette la voiture sur la ligne centrale"
+Randomness seeded to: 1134937409
+===============================================================================
+All tests passed (8 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression projette la voiture sur la ligne centrale" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression projette la voiture sur la ligne centrale" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/19 Testing: La progression revient a zero a la ligne de depart
+11/19 Test: La progression revient a zero a la ligne de depart
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression revient a zero a la ligne de depart"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression revient a zero a la ligne de depart" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression revient a zero a la ligne de depart"
+Randomness seeded to: 3962420689
+===============================================================================
+All tests passed (3 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"La progression revient a zero a la ligne de depart" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression revient a zero a la ligne de depart" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/19 Testing: La progression suit le circuit dans le sens horaire
+12/19 Test: La progression suit le circuit dans le sens horaire
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "La progression suit le circuit dans le sens horaire"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"La progression suit le circuit dans le sens horaire" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "La progression suit le circuit dans le sens horaire"
+Randomness seeded to: 886472932
+===============================================================================
+All tests passed (8 assertions in 1 test case)
+
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"La progression suit le circuit dans le sens horaire" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"La progression suit le circuit dans le sens horaire" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/19 Testing: Le neurone calcule sa somme ponderee
+13/19 Test: Le neurone calcule sa somme ponderee
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "Le neurone calcule sa somme ponderee"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"Le neurone calcule sa somme ponderee" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "Le neurone calcule sa somme ponderee"
+Randomness seeded to: 533499918
+===============================================================================
+All tests passed (2 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Le neurone calcule sa somme ponderee" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"Le neurone calcule sa somme ponderee" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/19 Testing: Le neurone effectue une etape d'apprentissage
+14/19 Test: Le neurone effectue une etape d'apprentissage
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "Le neurone effectue une etape d'apprentissage"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"Le neurone effectue une etape d'apprentissage" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "Le neurone effectue une etape d'apprentissage"
+Randomness seeded to: 3768687473
+===============================================================================
+All tests passed (2 assertions in 1 test case)
+
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Le neurone effectue une etape d'apprentissage" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"Le neurone effectue une etape d'apprentissage" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/19 Testing: Le neurone refuse un nombre incorrect d'entrees
+15/19 Test: Le neurone refuse un nombre incorrect d'entrees
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "Le neurone refuse un nombre incorrect d'entrees"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"Le neurone refuse un nombre incorrect d'entrees" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "Le neurone refuse un nombre incorrect d'entrees"
+Randomness seeded to: 3213878228
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Le neurone refuse un nombre incorrect d'entrees" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"Le neurone refuse un nombre incorrect d'entrees" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/19 Testing: ReLU annule une somme negative
+16/19 Test: ReLU annule une somme negative
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "ReLU annule une somme negative"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"ReLU annule une somme negative" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "ReLU annule une somme negative"
+Randomness seeded to: 3214292881
+===============================================================================
+All tests passed (2 assertions in 1 test case)
+
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"ReLU annule une somme negative" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"ReLU annule une somme negative" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/19 Testing: ReLU conserve une somme positive
+17/19 Test: ReLU conserve une somme positive
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "ReLU conserve une somme positive"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"ReLU conserve une somme positive" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "ReLU conserve une somme positive"
+Randomness seeded to: 2262958325
+===============================================================================
+All tests passed (1 assertion in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ReLU conserve une somme positive" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"ReLU conserve une somme positive" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/19 Testing: Reset efface la progression et utilise le nouveau depart
+18/19 Test: Reset efface la progression et utilise le nouveau depart
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "Reset efface la progression et utilise le nouveau depart"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"Reset efface la progression et utilise le nouveau depart" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "Reset efface la progression et utilise le nouveau depart"
+Randomness seeded to: 1351272411
+===============================================================================
+All tests passed (4 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Reset efface la progression et utilise le nouveau depart" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"Reset efface la progression et utilise le nouveau depart" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/19 Testing: Revenir sur ses pas ne rapporte pas une nouvelle progression
+19/19 Test: Revenir sur ses pas ne rapporte pas une nouvelle progression
+Command: "C:/Users/lucde/Documents/Code/F1_race/build-coverage/F1_tests.exe" "Revenir sur ses pas ne rapporte pas une nouvelle progression"
+Directory: C:/Users/lucde/Documents/Code/F1_race/build-coverage
+"Revenir sur ses pas ne rapporte pas une nouvelle progression" start time: Oct 16 15:27 Paris, Madrid (heure d’été)
+Output:
+----------------------------------------------------------
+Filters: "Revenir sur ses pas ne rapporte pas une nouvelle progression"
+Randomness seeded to: 4262541935
+===============================================================================
+All tests passed (4 assertions in 1 test case)
+
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Revenir sur ses pas ne rapporte pas une nouvelle progression" end time: Oct 16 15:27 Paris, Madrid (heure d’été)
+"Revenir sur ses pas ne rapporte pas une nouvelle progression" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 16 15:27 Paris, Madrid (heure d’été)
