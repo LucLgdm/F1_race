@@ -5,4 +5,4 @@ ctest --test-dir build --output-on-failure
 
 modif' à faire :
 	détection continue
-	rayon de détection d'obstacle
+	rayon de détection d'obstacle	

@@ -10,10 +10,11 @@
 #include "ML/Agent.hpp"
 #include <iostream>
 
-Agent::Agent(const Track& track):
-	 _simulation(track), _network(std::vector<Layer>{
-			Layer{8, 16, Activation::Tanh}, Layer{16, 16, Activation::Tanh}, Layer{16, 3, Activation::Tanh}
-	}) {}
+Agent::Agent(const Track& track): _track(track), _simulation(track),
+			_network(std::vector<Layer>{Layer{8, 16, Activation::Tanh},
+										Layer{16, 16, Activation::Tanh},
+										Layer{16, 3, Activation::Tanh}}),
+			_progress(track.length(), track.progressAt(startPosition)) {}
 
 Agent::Agent(const Track& track, Vec2 startPosition):
 	 _simulation(track, startPosition), _network(std::vector<Layer>{
@@ -37,6 +38,7 @@ void Agent::step(float dt) {
 	controls.brake    = std::clamp(outputs[2], 0.0f, 1.0f);
 
 	const bool collided = _simulation.step(controls, dt);
+	_progress.update(_track.progressAt(_simulation.car().position()));
 	_elapsedTime += dt;
 	if (collided || _elapsedTime >= maxDuration)
 		_active = false;
@@ -54,4 +56,19 @@ const Car& Agent::car() const noexcept {
 
 bool Agent::isActive() const noexcept {
 	return _active;
+}
+
+float Agent::progress() const noexcept {
+	return _progress.progress();
+}
+
+float Agent::bestProgress() const noexcept {
+	return _bestProgress();
+}
+
+void Agent::reset() {
+	_simulation.reset();
+	_progress.reset(_track.progressAt(_simulation.cqr().position()));
+	_active = true;
+	_elapsedTime = 0.0f;
 }

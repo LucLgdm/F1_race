@@ -15,6 +15,7 @@
 #include "Exception.hpp"
 #include "Simulation.hpp"
 #include "ML/Network.hpp"
+#include "ML/ProgressTracker.hpp"
 
 
 class Agent {
@@ -27,10 +28,14 @@ class Agent {
 
 		[[nodiscard]] const Car& car() const noexcept;
 		[[nodiscard]] bool isActive() const noexcept;
+		[[nodiscard]] float progress() const noexcept;
+		[[nodiscard]] float bestProgress() const noexcept;
 
 	private:
+		const Track& _track;
 		Simulation _simulation;
 		Network _network;
+		ProgressTracker _progress;
 
 		bool _active = true;
 		float _elapsedTime = 0.0f;

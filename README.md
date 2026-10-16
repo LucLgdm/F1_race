@@ -1,6 +1,6 @@
 # F1_race
 
-A top-down racing simulation written in modern C++20 with OpenGL. The player drives with the keyboard; the long-term goal is to add opponents controlled by a neural network implemented from scratch.
+A top-down racing simulation written in modern C++20 with OpenGL. It supports keyboard driving and now displays a population of cars controlled by independently randomized neural networks implemented from scratch. Population learning is the next stage.
 
 This is a learning project: build a working simulation, implement neural networks from scratch, and compare autonomous driving learned through neuroevolution and reinforcement learning. Supervised examples are used to understand and check gradient-based training, rather than as the main driving strategy.
 
@@ -9,7 +9,7 @@ This is a learning project: build a working simulation, implement neural network
 - GLFW window and OpenGL rendering using GLAD.
 - A car with acceleration, braking, steering, and visible wheels.
 - A fixed simulation timestep of `1 / 120` second.
-- A camera following the player without rotating with the car.
+- A camera following a car without rotating with it; the current population view follows the first agent.
 - A configurable rectangular track.
 - Collision checks that restore the previous car state and stop it.
 - Neural-network forward passes through neurons, layers, and networks.
@@ -21,7 +21,14 @@ This is a learning project: build a working simulation, implement neural network
 - Five wall-distance sensors, verified on the rectangular track.
 - Observation helpers for speed, track-relative heading, and eight normalized network inputs.
 
-Autonomous driving training is not implemented yet. The next stage is to extract a rendering-independent simulation and train a population of 10–20 cars through selection and mutation. Reinforcement learning with backpropagation will be added later for comparison. Model persistence, track/model association, and training display options are planned. Circuit shapes will be developed separately.
+- A rendering-independent `Simulation` with stepping, observations, collisions, and reset.
+- An `Agent` owning a simulation and a random `8 -> 16 -> 16 -> 3` Tanh network.
+- Twenty independently updated agents displayed together, without car-to-car collisions.
+- A staggered two-file starting grid with per-agent reset positions.
+- Track centreline length and wrapped position coordinate, verified by Catch2 tests.
+- A Catch2 v3 / CTest suite for loss, neurons, and track progress functions.
+
+The agents currently perform inference with random weights: they do not yet learn from their driving trials. Per-agent accumulated progress, fitness selection, mutations, and generation management remain to be implemented. Reinforcement learning, model persistence, track/model association, and configurable training display modes are also planned. Circuit shapes will be developed separately.
 
 ## Requirements and build
 
@@ -52,7 +59,7 @@ cmake --build build
 ./build/F1_race.exe
 ```
 
-Run the executable from the project root because shader paths such as `shaders/vertex.glsl` are relative to the working directory. Include the implementation files for `Track`, `Renderer`, and the ML classes in the executable's CMake source list. Headers alone do not compile their corresponding `.cpp` files automatically.
+Run the executable from the project root because shader paths such as `shaders/vertex.glsl` are relative to the working directory. Include the implementation files for `Track`, `Renderer`, `Simulation`, `Agent`, and the ML classes in the executable's CMake source list. Headers alone do not compile their corresponding `.cpp` files automatically.
 
 ## Controls
 
@@ -64,7 +71,7 @@ Run the executable from the project root because shader paths such as `shaders/v
 | D | Steer right |
 | Escape | Request window closure |
 
-Forward motion is currently supported; reverse gear is not implemented. The window-close request uses `glfwSetWindowShouldClose()`, while `glfwWindowShouldClose()` reads that flag.
+These driving keys describe the keyboard-controlled mode. In the current population loop, networks generate the driving commands; keyboard driving commands are not passed to agents. Escape still closes the window. Forward motion is currently supported; reverse gear is not implemented. The window-close request uses `glfwSetWindowShouldClose()`, while `glfwWindowShouldClose()` reads that flag.
 
 ## Project layout
 
@@ -75,11 +82,13 @@ F1_race/
 ├── note.txt
 ├── include/
 │   ├── Application.hpp
+│   ├── Agent.hpp
 │   ├── Car.hpp
 │   ├── CarObservation.hpp
 │   ├── CarSensors.hpp
 │   ├── Exception.hpp
 │   ├── Renderer.hpp
+│   ├── Simulation.hpp
 │   ├── Track.hpp
 │   ├── Vec2.hpp
 │   ├── ML/
@@ -91,13 +100,19 @@ F1_race/
 │   ├── KHR/
 │   ├── glad/
 │   └── glm/
+├── tests/
+│   ├── test_loss.cpp
+│   ├── test_neuron.cpp
+│   └── test_track.cpp
 ├── shaders/
 │   ├── vertex.glsl
 │   └── fragment.glsl
 └── src/
     ├── Application.cpp
+    ├── Agent.cpp
     ├── Car.cpp
     ├── Renderer.cpp
+    ├── Simulation.cpp
     ├── Track.cpp
     ├── glad.c
     ├── main.cpp
@@ -108,58 +123,78 @@ F1_race/
         └── testML.cpp
 ```
 
-`CarObservation.hpp` and `CarSensors.hpp` are the observation headers introduced in the latest development steps. `Exception.hpp` and `note.txt` are also present. `testML.cpp` contains the ML examples, including single-neuron and whole-network training. Planned classes such as `Simulation`, `Agent`, and the trainers are not yet part of this layout.
+`CarObservation.hpp` and `CarSensors.hpp` are the observation headers introduced in the latest development steps. `Exception.hpp` and `note.txt` are also present. `testML.cpp` contains the ML examples, including single-neuron and whole-network training. `Simulation` and `Agent` are now part of the project; the trainer classes are still planned.
 
 ## Architecture
 
-### Simulation and rendering
+### Simulation, agents, and rendering
 
-| Component | Responsibility |
+| Component | Current responsibility |
 | --- | --- |
-| `Application` | Own the application lifecycle, process input, advance the simulation, coordinate collisions, and request rendering |
+| `Application` | Initialize GLFW/OpenGL, own the track and agent vector, process events, accumulate time, advance agents, and coordinate rendering |
+| `Simulation` | Own one car and its assigned start position; observe, step physics, roll back collisions, and reset |
+| `Agent` | Own a simulation and network, decode commands, and track trial activity and elapsed time |
 | `Car` | Store position, heading, speed, and steering angle; update motion from `CarControls` |
-| `Track` | Construct the road geometry, provide the starting position, and determine whether the car's collision circle is on the road |
+| `Track` | Provide road geometry, start position, collision checks, wall raycasts, reference heading, centreline length, and position coordinate |
 | `Renderer` | Manage OpenGL resources, configure the camera, and draw the track and cars |
 | `Vec2` | Shared two-dimensional coordinates independent of OpenGL |
 
-`Car` and `Track` describe the simulated world. They do not issue OpenGL commands. `Renderer` draws their state without deciding how cars move. The ML code operates on numbers and remains independent of these classes.
+`Simulation` contains no GLFW or OpenGL operations. Each simulation holds a `const Track&`, so the track must outlive all simulations referring to it. `Application` declares its track before its agent vector. Agents own independent car and network state while sharing immutable track geometry.
 
-The frame loop follows this order:
+`Simulation::step(controls, dt)` saves the car state, calls `Car::update()`, and checks the candidate position. On collision it restores the saved state, stops the car, and returns `true`; otherwise it returns `false`. `reset()` reconstructs the car at that simulation's assigned start position. The default constructor path uses `track.startPosition()`; a second constructor accepts and validates an explicit grid position using the car's collision radius.
 
-1. Poll events and read keyboard controls.
-2. Accumulate elapsed time.
-3. Advance physics in fixed steps. For each step, save the car state, update it, and check the candidate position against the track.
-4. Restore the previous state and set speed to zero if a collision occurs.
-5. Clear the framebuffer, configure the view, draw the track, draw the car, and swap buffers.
+The current frame loop:
 
-The renderer's public drawing sequence is:
+1. Poll events and accumulate elapsed time, limiting catch-up after a pause.
+2. For each fixed `1 / 120` second tick, call `step()` on every agent.
+3. Each active agent observes, runs its network, decodes controls, and advances its simulation once.
+4. Deactivate an agent after collision or 20 seconds of simulated trial time.
+5. Set the camera once, draw the shared track once, then draw all agents and swap buffers.
 
 ```cpp
-renderer.beginFrame(car.position(), width, height);
-renderer.drawTrack(track);
-renderer.drawCar(car);
+while (accumulator >= fixedDt)
+{
+    for (Agent& agent : _agents)
+        agent.step(static_cast<float>(fixedDt));
+
+    accumulator -= fixedDt;
+}
+
+_renderer.beginFrame(_agents.front().car().position(), width, height);
+_renderer.drawTrack(_track);
+
+for (const Agent& agent : _agents)
+    _renderer.drawCar(agent.car());
 ```
 
-The track is drawn once per frame. Additional cars will be drawn using the same view and projection.
+The rendering excerpt assumes the initialized population is nonempty and a valid framebuffer size has been checked. `Agent::step()` ignores inactive agents. Inactive cars remain visible at their final positions; there is no automatic next generation yet. `Agent::reset()` resets the trial without changing its network.
 
-### Planned orchestration and training architecture
+### Starting grid
 
-`Application` remains the orchestrator: select a circuit and training method, start or resume training, choose display options, and launch gameplay with a saved model. Physics and evaluation will be extracted from its current loop into a simulation that works without GLFW or OpenGL.
+The current circuit is `120 x 80` metres with a `20` metre road. Twenty agents start in two staggered files on the upper straight, facing +X. Relative to the original start centre:
+
+```cpp
+const float x = centre.x + 28.5f - 3.0f * i;
+const float y = centre.y + ((i % 2 == 0) ? 3.0f : -3.0f);
+```
+
+Successive cars are offset by 3 metres longitudinally and alternate sides; cars in the same file are separated by 6 metres. This grid fits the current track and each spawn is checked with `canDrive()`. It is not yet a general grid generator for arbitrary circuits or population sizes.
+
+Cars do not collide with one another: these are independent driving trials displayed together. Because positions differ, future fitness must measure progress relative to each agent's own start. Rotating grid assignments or evaluating candidates from common starts will help compare networks fairly.
+
+### Planned training orchestration
+
+`Application` remains the orchestrator. Circuit selection, training-method selection, optional ray display, and saved-model gameplay will be added around the existing simulation.
 
 | Planned component | Responsibility |
 | --- | --- |
-| `Simulation` | Advance the physical world at a fixed timestep, expose observations, detect collisions, track progress, and reset episodes |
-| `Agent` | Own one car, its network, its score, and its active/finished state |
-| `EvolutionTrainer` | Evaluate a population, select parents, retain elites, and mutate offspring |
-| `SupervisedTrainer` | Organize input/target examples using the existing gradient-based training methods |
-| `ReinforcementTrainer` | Later, implement a reward-based algorithm with a suitable gradient objective |
-| `Renderer` | Optionally draw the simulation, all agents or a selected agent, and sensor rays |
+| `EvolutionTrainer` | Score a population, select parents, preserve elites, mutate offspring, and launch generations |
+| `SupervisedTrainer` | Organize input/target examples using the existing supervised training methods |
+| `ReinforcementTrainer` | Implement a reward-based algorithm with a suitable gradient objective |
 
-These names describe the intended responsibilities, not completed interfaces. World stepping and agent ownership will be arranged so that every active car advances exactly once per simulation tick and all agents share the same track geometry.
+The simulation is now independent of rendering, but a separate headless training driver and display controls are not implemented yet. Keep physics at `1 / 120` second when adding rendering every N ticks, pause/single-step controls, or no-rendering mode. Rendering frequency must not change the physical timestep. Headless execution need not wait for real time.
 
-Training display is optional. Keep physics at `1 / 120` second; render every N simulation ticks, pause and advance one tick manually, or omit rendering entirely. Rendering less frequently must not increase the physical timestep or skip physics updates. Headless training need not wait for real time.
-
-The initial population will have no car-to-car collisions: each car is an independent driving trial on the same circuit. Displaying 20 cars does not require 20 threads; they can be updated sequentially during each fixed tick.
+The current 20 agents are advanced sequentially during each tick; multi-agent simulation does not require multithreading.
 
 ### Coordinates, camera, and vehicle motion
 
@@ -193,11 +228,11 @@ The car is represented by a circle of radius 2.3 metres. `Track::canDrive()` che
 
 This is discrete collision detection: it checks the candidate position after each physics step. It can miss an obstacle crossed entirely between two positions. A continuous collision method would inspect the swept motion and find the first time of contact. The small fixed timestep reduces this risk but does not eliminate it in general.
 
-The collision circle is conservative relative to the drawn car, so contact can happen before a visible part reaches a wall. Accelerating into a wall leaves the car blocked; recovery behaviour is future work.
+The collision circle is conservative relative to the drawn car, so contact can happen before a visible part reaches a wall. In keyboard mode, accelerating into a wall leaves the car blocked. In the current agent mode, collision ends the trial and the car remains at its last valid position. Recovery behaviour is future work.
 
 ### Resource lifetime
 
-OpenGL resource creation occurs after the context is made current and GLAD is loaded. Renderer cleanup occurs before destroying that context. GPU buffers and shader programs require explicit OpenGL deletion; the current design uses `Renderer::shutdown()` to control that ordering.
+OpenGL resource creation occurs after the context is made current and GLAD is loaded. Renderer cleanup occurs before destroying that context; `_rendererReady` guards shutdown after successful initialization, and the window pointer starts as `nullptr`. GPU buffers and shader programs require explicit OpenGL deletion; the current design uses `Renderer::shutdown()` to control that ordering.
 
 ## Machine learning introduction
 
@@ -242,20 +277,30 @@ The current range is 40 metres. If no wall is encountered within that range, the
 
 The two orientation values avoid the discontinuity between angles near -pi and +pi. The reference direction is currently defined by the nearest segment of the rectangular track centreline, traversed clockwise. The upper straight points toward +X. The signed error is `car.heading() - track.referenceHeading(position)`, wrapped with `std::remainder()`.
 
-This reference heading changes abruptly at rectangular corners. A later track representation can provide a smoother tangent. It is an orientation observation, not yet a lap-progress or checkpoint implementation.
+This reference heading changes abruptly at rectangular corners. A later track representation can provide a smoother tangent. It is an orientation observation. The separate `progressAt()` coordinate is now implemented; accumulated agent progress and checkpoints are still pending.
 
 Observations are computed before the corresponding physics update:
 
 ```cpp
-const auto observation = observeCar(car, track, 40.0f);
+const auto observation = _simulation.observe();
 const auto inputs = observation.normalized(40.0f, 50.0f);
-// A future controller will turn network outputs into CarControls.
-car.update(controls, fixedDt);
+const auto outputs = _network.forward(inputs);
+// Decode outputs into CarControls, then call _simulation.step().
 ```
 
 For the 120 x 80 metre track with a 10 metre road, the initial centre position and zero heading give distances approximately `{5, 7.071, 40, 7.071, 5}`. At rest, normalized inputs are approximately `{0.125, 0.1768, 1, 0.1768, 0.125, 0, 0, 1}`. These five distance measurements have been checked.
 
-Three driving outputs are planned: steering, throttle, and brake. Their decoding must preserve steering in `[-1, 1]` and throttle/brake in `[0, 1]`. Activation selection and any remapping/clamping must be explicit and consistent during both training and gameplay. The final driving architecture is not fixed; its input layer must accept eight values.
+The current driving network has eight inputs, two hidden layers of 16 neurons, and three output neurons. Every computational layer uses Tanh. Output decoding in `Agent::step()` is:
+
+| Output | Command | Decoding |
+| --- | --- | --- |
+| 0 | Steering | `clamp(output, -1, 1)` |
+| 1 | Throttle | `clamp(output, 0, 1)` |
+| 2 | Brake | `clamp(output, 0, 1)` |
+
+Negative throttle/brake outputs become zero; they are not remapped from `[-1, 1]` to `[0, 1]`. The architecture has `(8*16+16) + (16*16+16) + (16*3+3) = 467` weights and biases. Its size remains an experimental choice.
+
+A random network can ask for zero throttle and positive braking. This was observed during integration and correctly leaves the car stationary. Net acceleration is `8 * throttle - 15 * brake - 1` in metres per second squared, so positive throttle alone does not guarantee movement. These trials currently end at the 20-second limit; an earlier no-progress timeout is planned.
 
 ## Neural-network implementation
 
@@ -429,13 +474,13 @@ Backpropagation is a gradient-computation mechanism, not a complete reward-based
 | Desired command labels | Not required | Not required |
 | Existing `forward()` | Reused | Reused |
 | Existing MSE `train()` alone | Not used | Insufficient to implement reward-based driving |
-| Status | Planned | Planned; no specific algorithm selected yet |
+| Status | Population inference works; scoring, selection, and mutations pending | Planned; no specific algorithm selected yet |
 
 Supervised learning is already implemented for numerical exercises and could support an optional imitation baseline. It needs known targets. A lap score cannot simply be passed as the three desired driving commands to the existing `train()` method.
 
 ### Neuroevolution: population and generations
 
-Start with 10–20 independent agents. Each has the same network architecture but initially random weights, its own car state, and its own score. All start under the same evaluation conditions on the selected track.
+The current population contains 20 independent agents with the same network architecture and independently randomized weights. Each already owns car state and a trial timer; fitness scores and generation management are the next additions. The staggered grid currently gives different starting positions, which must be accounted for during evaluation.
 
 1. Run each active car using its network predictions.
 2. End a trial on collision, timeout, or another configured terminal condition.
@@ -458,9 +503,40 @@ Copies must own their parameter storage independently. One offspring's mutation 
 
 The initial fitness should prioritize the furthest valid forward progress around the circuit. Once agents complete laps, completion and lap time should influence ranking. Count progress along the route, not total movement distance: driving circles or shuttling backwards and forwards must not accumulate artificial progress.
 
-Ordered checkpoints and a validated finish-line crossing are planned to track direction and laps. The current `referenceHeading()` helper alone does not implement this. Collision penalties, maximum trial duration, and termination after prolonged lack of progress will bound trials.
+Track-position coordinates are now implemented and tested, as described below. Ordered checkpoints and a validated finish-line crossing are still planned. Collision and a 20-second maximum duration already end agent trials; fitness penalties and early termination after prolonged lack of progress are not implemented yet.
 
 A possible per-step reward for later reinforcement learning combines signed route progress, elapsed-time cost, collision penalty, and a validated lap-completion bonus. Exact coefficients and fitness ranking remain to be chosen. Rewarding survival alone can favour stopping; rewarding speed alone can favour crashing; rewarding only completed laps gives beginners little feedback.
+
+### Track coordinate: implemented and tested
+
+`Track::length()` returns the perimeter of the rectangular centreline:
+
+```text
+centreWidth  = width  - roadWidth
+centreHeight = height - roadWidth
+length       = 2 * (centreWidth + centreHeight)
+```
+
+`Track::progressAt(position)` projects a position onto the nearest centreline segment and returns a clockwise coordinate in `[0, length)`. The origin is the midpoint of the upper straight, independently of each agent's grid position.
+
+For the current `120 x 80` metre track with a 20 metre road, the centreline is `100 x 60` metres and its length is 320 metres:
+
+| Position | Coordinate |
+| --- | --- |
+| `(0, 30)` — original start centre | 0 m |
+| `(10, 30)` | 10 m |
+| `(50, 30)` — upper-right corner | 50 m |
+| `(50, 0)` | 80 m |
+| `(50, -30)` — lower-right corner | 110 m |
+| `(0, -30)` | 160 m |
+| `(-50, -30)` — lower-left corner | 210 m |
+| `(-50, 0)` | 240 m |
+| `(-50, 30)` — upper-left corner | 270 m |
+| `(-10, 30)` | 310 m |
+
+The projection parameter `t` lies in `[0, 1]`. The distance from the first centreline corner is `distanceBeforeSegment + t * segmentLength`; the origin is then shifted to the upper midpoint and negative coordinates are wrapped by adding the circuit length.
+
+This coordinate is not distance already travelled. An agent spawning at coordinate 310 has not earned 310 metres. Per-agent tracking still needs an initial coordinate, signed increments across the wrap (`319 -> 0` means +1 metre), accumulated progress, and best progress. Reverse movement must subtract progress rather than earn distance. Coordinate projection by itself does not validate a lap or prevent every shortcut; ordered checkpoints remain planned. Nearest-segment ambiguity near rectangular corners is also a limitation of this initial representation.
 
 ### Comparing the approaches
 
@@ -484,6 +560,52 @@ models/
 
 Changing the track or observation format can invalidate an association or require retraining. Model loading, saving, and automatic track/model selection are not implemented yet.
 
+## Automated tests
+
+The project uses Catch2 v3 and CTest. With `BUILD_TESTING` enabled, CMake finds Catch2 through `find_package(Catch2 3 CONFIG REQUIRED)`, builds `F1_tests`, links `Catch2::Catch2WithMain`, and registers cases using `catch_discover_tests(F1_tests)`.
+
+The current test target includes:
+
+```cmake
+add_executable(F1_tests
+    tests/test_loss.cpp
+    tests/test_neuron.cpp
+    tests/test_track.cpp
+    src/ML/Neuron.cpp
+    src/Track.cpp
+)
+
+target_include_directories(F1_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+target_compile_features(F1_tests PRIVATE cxx_std_20)
+target_link_libraries(F1_tests PRIVATE Catch2::Catch2WithMain)
+```
+
+Use this inside the existing `if(BUILD_TESTING)` block, with `include(CTest)` before it and `include(Catch)` / `catch_discover_tests(F1_tests)` after target configuration. Catch2 must be discoverable by CMake. These tests do not create a window or need an OpenGL context; this does not imply that the application's top-level CMake dependency discovery is already optional for headless environments.
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --target F1_tests
+ctest --test-dir build --output-on-failure
+```
+
+To show the detailed track comparisons in the current Windows/MSYS2 environment:
+
+```bash
+./build/F1_tests.exe "[track]" --reporter compact
+```
+
+| Test file | Current checks |
+| --- | --- |
+| `test_loss.cpp` | Zero loss for exact predictions, known MSE value, rejected size mismatch, and rejected empty inputs |
+| `test_neuron.cpp` | Weighted sum and Linear output, negative/positive ReLU behaviour, rejected input count, and a known supervised parameter update |
+| `test_track.cpp` | Centreline length for several dimensions, zero at the original start, clockwise coordinates on all four sides and corners, wrap around the origin, and lateral projection |
+
+Track tests use `Catch::Approx(...).margin(1e-4f)` for position coordinates and `CAPTURE()` for failing sample positions. All five track test cases pass after correcting the projection-distance expression.
+
+For new functionality, prefer deterministic Catch2 checks over temporary debug output in `Application`. Add matching tests for accumulated progress, no-progress timeouts, and evolutionary operations as those features are implemented. Current coverage does not yet include full-network gradient checks or agent lifecycle/population tests.
+
 ## Checks while developing
 
 The current ML examples should produce approximate values, because floating-point calculations need not match decimal arithmetic exactly:
@@ -500,25 +622,28 @@ Input counts must match neuron weight counts, and each layer must produce the in
 
 ## Roadmap
 
-Completed or introduced in the current learning steps:
+Completed in the current development steps:
 
-- Neurons, dense layers, networks, configurable activations, and MSE.
-- Random initialization and single-neuron gradient-descent training.
-- Full-network backpropagation and numerical regression examples.
-- Five verified wall-distance sensors, normalized observations, and a rectangular-track reference-heading helper.
+- Neurons, dense layers, networks, activations, MSE, and random initialization.
+- Single-neuron training, activation derivatives, and full-network backpropagation examples.
+- Wall-distance sensors, eight normalized observations, and track-relative heading.
+- Rendering-independent simulation with collision reporting and per-position reset.
+- Agents with individual random networks and explicit steering/throttle/brake decoding.
+- A displayed population of 20 agents on a staggered starting grid.
+- Trial termination on collision or a 20-second simulated-time limit.
+- Track length and clockwise position coordinate, with passing Catch2 tests.
+- Catch2/CTest integration for loss, neuron, and track checks.
 
 Next implementation stages:
 
-1. Extract physics, observations, collision reporting, and reset behaviour into a rendering-independent simulation.
-2. Define network-output decoding into steering, throttle, and brake.
-3. Add ordered checkpoints, forward progress, lap validation, timeouts, and trial scoring.
-4. Add an agent population with independently owned cars and networks.
-5. Implement parameter copying and mutation, elite preservation, and generation management.
-6. Add training controls in `Application`: track selection, optional rendering, rendering interval, single-step mode, selected-agent tracking, and optional ray display.
-7. Save/load policies and associate compatible models with each track.
-8. Add a reinforcement-learning trainer using backpropagation and compare both autonomous approaches under common evaluation rules.
+1. Track signed accumulated progress from each agent's own start, best progress, and lack-of-progress timeouts; add deterministic tests.
+2. Add ordered checkpoints, lap validation, fitness ranking, and fair evaluation across starting positions.
+3. Implement independently owned parameter copying, mutation, elite preservation, and generation management.
+4. Add training controls in `Application`: track selection, headless execution, rendering interval, pause/single-step mode, selected-agent tracking, and optional ray display.
+5. Save/load policies and associate compatible models with each track.
+6. Add a reinforcement-learning trainer using backpropagation and compare both autonomous approaches under common evaluation rules.
 
-Multi-car display initially represents independent trials, without physical interactions between agents. Actual racing, overtaking, and avoidance of other cars will need additional observations and evaluation rules.
+The current population performs independent inference trials; it is not yet evolving. Actual racing, overtaking, and avoidance of other cars will need additional observations and evaluation rules.
 
 ## Observed training results
 

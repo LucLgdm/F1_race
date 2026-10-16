@@ -18,6 +18,7 @@ add_executable(F1_race
 	src/ML/Network.cpp
 	src/ML/testML.cpp
 	src/ML/Agent.cpp
+	src/ML/ProgressTracker.cpp
 )
 
 target_compile_features(F1_race PRIVATE cxx_std_20)
@@ -45,7 +46,9 @@ if(BUILD_TESTING)
 		tests/test_loss.cpp
 		tests/test_neuron.cpp
 		tests/test_track.cpp
+		tests/test_progress.cpp
 		src/ML/Neuron.cpp
+		src/ML/ProgressTracker.cpp
 		src/Track.cpp
 	)
 
