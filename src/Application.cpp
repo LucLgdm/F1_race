@@ -93,10 +93,16 @@ void Application::run() {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
 			// The camera follows only the first car
-			_renderer.beginFrame(_agents.front().car().position(), width, height);
-			_renderer.drawTrack(_track);
-			for (const Agent& agent : _agents)
-				_renderer.drawCar(agent.car());
+			const auto leader = std::max_element(_agents.begin(), _agents.end(),
+								[](const Agent& left, const Agent& right) {
+									return left.progress() < right.progress();
+								});
+			if (leader != _agents.end()) {
+				_renderer.beginFrame(leader->car().position(), width, height);
+				_renderer.drawTrack(_track);
+				for (const Agent& agent : _agents)
+					_renderer.drawCar(agent.car());
+			}
 		}	
 
 		glfwSwapBuffers(_window);
