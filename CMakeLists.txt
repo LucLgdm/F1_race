@@ -47,6 +47,7 @@ if(BUILD_TESTING)
 		tests/test_neuron.cpp
 		tests/test_track.cpp
 		tests/test_progress.cpp
+		tests/test_selection.cpp
 		src/ML/Neuron.cpp
 		src/ML/ProgressTracker.cpp
 		src/Track.cpp

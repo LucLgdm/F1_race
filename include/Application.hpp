@@ -19,6 +19,7 @@
 #include "Exception.hpp"
 #include "Renderer.hpp"
 #include "ML/Agent.hpp"
+#include "ML/Selection.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;
@@ -40,6 +41,7 @@ class Application {
 
 		Track _track{800.0f, 500.0f, 20.0f};
 		std::vector<Agent> _agents;
+		bool _generationEvaluated = false;
 
 		void initGLFW();
 		void initOpenGL();

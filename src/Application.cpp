@@ -64,6 +64,22 @@ void Application::run() {
 		while (accumulator >= fixedDt) {
 			for (Agent& agent : _agents)
 				agent.step(static_cast<float>(fixedDt));
+
+			if (!_generationEvaluated && !_agents.empty()) {
+				const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
+												[](const Agent& agent){return !agent.isActive();});
+				
+				if (allFinished) {
+					std::vector<float> scores;
+					scores.reserve(_agents.size());
+					for (const Agent& agent : _agents)	
+						scores.push_back(agent.bestProgress());
+					const std::size_t bestIndex = selectBestIndex(scores);
+					std::cout << "Fin des essais" << " | Meilleur agent : " << bestIndex
+								<< " | Progression : " << scores[bestIndex] << " m" << std::endl;
+					_generationEvaluated = true;
+				}
+			}
 			accumulator -= fixedDt;
 		}
 
