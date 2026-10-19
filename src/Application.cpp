@@ -112,24 +112,32 @@ void Application::run() {
 void Application::evolvePopulation(std::size_t bestIndex) {
 	// independent copies before the modification
 	const Network parent = _agents.at(bestIndex).network();
-
-	constexpr float mutationProbability = 0.1f;
-	constexpr float mutationStrength = 0.1f;
+	std::size_t offspringIndex = 0;
 
 	for (std::size_t i = 0; i < _agents.size(); ++i) {
 		Agent& agent = _agents[i];
-		agent.setNetwork(parent);
-		if (i != bestIndex)
-			agent.mutateNetwork(mutationProbability, mutationStrength, _generator);
-		
+		if (i == bestIndex){
+			agent.setNetwork(parent);
+		}else{
+			++offspringIndex;
+			if (offspringIndex <= 6) {
+				agent.setNetwork(parent);
+				agent.mutateNetwork(0.05f, 0.03f, _generator);
+			}else if (offspringIndex <= 12) {
+				agent.setNetwork(parent);
+				agent.mutateNetwork(0.1f, 0.1f, _generator);
+			}else if (offspringIndex <= 17) {
+				agent.setNetwork(parent);
+				agent.mutateNetwork(0.2f, 0.3f, _generator);
+			}else{
+				agent.randomizeNetwork();
+			}
+		}
 		agent.reset();
 	}
 	++_generation;
 	_generationEvaluated = false;
 }
-
-
-
 
 void Application::handleKey(CarControls& controls) {
 	// General

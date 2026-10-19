@@ -33,6 +33,7 @@ class Agent {
 
 		void setNetwork(const Network& network);
 		void mutateNetwork(float probability, float strength, std::mt19937& generator);
+		void randomizeNetwork();
 
 	private:
 		const Track& _track;
@@ -43,6 +44,6 @@ class Agent {
 		bool _active = true;
 		float _elapsedTime = 0.0f;
 
-		static constexpr float _maxDuration = 20.0f;
+		static constexpr float _maxDuration = 120.0f;
 		static constexpr float _maxTimeWithoutProgress = 3.0f;
 };

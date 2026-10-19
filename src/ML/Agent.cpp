@@ -73,3 +73,13 @@ void Agent::reset() {
 void Agent::mutateNetwork(float probability, float strength, std::mt19937& generator) {
 	_network.mutate(probability, strength, generator);
 }
+
+void Agent::randomizeNetwork() {
+	_network = Network{
+		std::vector<Layer> {
+			Layer{8, 16, Activation::Tanh},
+			Layer{16, 16, Activation::Tanh},
+			Layer{16, 3, Activation::Tanh}
+		}
+	};
+}
