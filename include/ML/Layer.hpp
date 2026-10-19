@@ -22,6 +22,7 @@ class Layer {
 		[[nodiscard]] std::vector<float> forward(std::span<const float> inputs) const;
 
 		std::vector<float> backward(std::span<const float> inputs, std::span<const float> outputGradients, float learningRate);
+		void mutate(float probability, float strength, std::mt19937& generator);
 	
 	private:
 		std::vector<Neuron> _neurons;

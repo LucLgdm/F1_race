@@ -42,7 +42,10 @@ class Application {
 		Track _track{800.0f, 500.0f, 20.0f};
 		std::vector<Agent> _agents;
 		bool _generationEvaluated = false;
+		std::mt19937 _generator{std::random_device{}()};
+		std::size_t _generation = 1;
 
 		void initGLFW();
 		void initOpenGL();
+		void evolvePopulation(std::size_t bestIndex);
 };

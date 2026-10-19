@@ -21,6 +21,7 @@ class Network {
 
 		[[nodiscard]] std::vector<float> forward(std::span<const float> inputs) const;
 		float train(std::span<const float> inputs, std::span<const float> targets, float learningRate);
+		void mutate(float probability, float strength, std::mt19937& generator);
 
 	private:
 		std::vector<Layer> _layers;

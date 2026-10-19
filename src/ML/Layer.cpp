@@ -48,3 +48,8 @@ std::vector<float> Layer::backward(std::span<const float> inputs, std::span<cons
 	}
 	return inputGradients;
 }
+
+void Layer::mutate(float probability, float strength, std::mt19937& generator) {
+	for (Neuron& neuron : _neurons)
+		neuron.mutate(probability, strength, generator);
+}

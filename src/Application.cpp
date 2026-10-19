@@ -77,7 +77,8 @@ void Application::run() {
 					const std::size_t bestIndex = selectBestIndex(scores);
 					std::cout << "Fin des essais" << " | Meilleur agent : " << bestIndex
 								<< " | Progression : " << scores[bestIndex] << " m" << std::endl;
-					_generationEvaluated = true;
+					_generationEvaluated = true; 
+					evolvePopulation(bestIndex);
 				}
 			}
 			accumulator -= fixedDt;
@@ -101,6 +102,28 @@ void Application::run() {
 		glfwSwapBuffers(_window);
 	}
 }
+
+void Application::evolvePopulation(std::size_t bestIndex) {
+	// independent copies before the modification
+	const Network parent = _agents.at(bestIndex).network();
+
+	constexpr float mutationProbability = 0.1f;
+	constexpr float mutationStrength = 0.1f;
+
+	for (std::size_t i = 0; i < _agents.size(); ++i) {
+		Agent& agent = _agents[i];
+		agent.setNetwork(parent);
+		if (i != bestIndex)
+			agent.mutateNetwork(mutationProbability, mutationStrength, _generator);
+		
+		agent.reset();
+	}
+	++_generation;
+	_generationEvaluated = false;
+}
+
+
+
 
 void Application::handleKey(CarControls& controls) {
 	// General

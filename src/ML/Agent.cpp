@@ -55,9 +55,21 @@ float Agent::bestProgress() const noexcept {
 	return _progress.bestProgress();
 }
 
+const Network& Agent::network() const noexcept {
+	return _network;
+}
+
+void Agent::setNetwork(const Network& network) {
+	_network = network;
+}
+
 void Agent::reset() {
 	_simulation.reset();
 	_progress.reset(_track.progressAt(_simulation.car().position()));
 	_active = true;
 	_elapsedTime = 0.0f;
+}
+
+void Agent::mutateNetwork(float probability, float strength, std::mt19937& generator) {
+	_network.mutate(probability, strength, generator);
 }

@@ -29,6 +29,10 @@ class Agent {
 		[[nodiscard]] bool isActive() const noexcept;
 		[[nodiscard]] float progress() const noexcept;
 		[[nodiscard]] float bestProgress() const noexcept;
+		[[nodiscard]] const Network& network() const noexcept;
+
+		void setNetwork(const Network& network);
+		void mutateNetwork(float probability, float strength, std::mt19937& generator);
 
 	private:
 		const Track& _track;

@@ -80,3 +80,30 @@ std::vector<float> Neuron::backward(std::span<const float> inputs, float outputG
 
 	return inputGradients;
 }
+
+/******************************************************************
+ * 2 parameters controls the mutation : probability and strength :
+ * the probabililty to upgrade the weigth or the bias
+ * the standard deviation of the perturbations added
+ ******************************************************************/
+
+void Neuron::mutate(float probability, float strength, std::mt19937& generator) {
+	if (!std::isfinite(probability) || probability < 0.0f
+		|| probability > 1.0f || !std::isfinite(strength)
+		|| strength < 0.0f)
+		throw neuralError ("Invalid mutation parameters");
+	
+	if (probability == 0.0f || strength == 0.0f)
+		return;
+
+	std::bernoulli_distribution shouldMutate(probability);
+	std::normal_distribution<float> perturbation(0.0f, strength);
+
+	for (float& weight : _weights) {
+		if (shouldMutate(generator))
+			weight += perturbation(generator);
+	}
+
+	if (shouldMutate(generator))
+		_bias += perturbation(generator);
+}

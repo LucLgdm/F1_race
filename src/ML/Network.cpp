@@ -58,3 +58,8 @@ float Network::train(std::span<const float> inputs, std::span<const float> targe
 
 	return loss;
 }
+
+void Network::mutate(float probability, float strength, std::mt19937& generator) {
+	for (Layer& layer : _layers)
+		layer.mutate(probability, strength, generator);
+}

@@ -33,6 +33,7 @@ class Neuron {
 		void train(std::span<const float> inputs, float target, float learningRate);
 		float weightedSum(std::span<const float> inputs) const;
 		std::vector<float> backward(std::span<const float> inputs, float outputGradient, float learningRate);
+		void mutate(float probability, float strength, std::mt19937& generator);
 
 	private:
 		std::vector<float> _weights;
