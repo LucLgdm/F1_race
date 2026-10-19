@@ -33,9 +33,9 @@ void Agent::step(float dt) {
 	controls.brake    = std::clamp(outputs[2], 0.0f, 1.0f);
 
 	const bool collided = _simulation.step(controls, dt);
-	_progress.update(_track.progressAt(_simulation.car().position()));
+	_progress.update(_track.progressAt(_simulation.car().position()), dt);
 	_elapsedTime += dt;
-	if (collided || _elapsedTime >= maxDuration)
+	if (collided || _elapsedTime >= _maxDuration || _progress.hasStalled(_maxTimeWithoutProgress))
 		_active = false;
 }
 

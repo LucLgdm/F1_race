@@ -17,10 +17,12 @@ class ProgressTracker {
 	public:
 		ProgressTracker(float trackLength, float initialCoordinate);
 
-		void update(float coordinate);
+		void update(float coordinate, float dt);
 		void reset(float initialCoordinate);
 		[[nodiscard]] float progress() const noexcept;
 		[[nodiscard]] float bestProgress() const noexcept;
+		[[nodiscard]] float timeWithoutProgress() const noexcept;
+		[[nodiscard]] bool hasStalled(float timeout) const noexcept;
 
 
 	private:
@@ -29,4 +31,8 @@ class ProgressTracker {
 
 		float _progress = 0.0f;
 		float _bestProgress = 0.0f;
+		float _timeWithoutProgress = 0.0f;
+		float _progressAtLastReset = 0.0f;
+
+		static constexpr float _minimumProgress = 0.5f;
 };
