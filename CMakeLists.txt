@@ -14,6 +14,7 @@ add_executable(F1_race
 	src/Track/Car.cpp
 	src/Track/Track.cpp
 	src/Track/LapCounter.cpp
+	src/Track/ChampionIO.cpp
 	src/ML/Neuron.cpp
 	src/ML/Layer.cpp
 	src/ML/Network.cpp
