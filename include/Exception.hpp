@@ -52,3 +52,11 @@ class carError : public exception {
 	private :
 		string _msg;
 };
+
+class IOError : public exception {
+	public:
+		explicit IOError(const std::string& m) : _msg(m) {}
+		const char* what() const noexcept override { return _msg.c_str(); }
+	private :
+		string _msg;
+};

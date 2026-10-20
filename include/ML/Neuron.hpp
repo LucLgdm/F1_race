@@ -39,4 +39,5 @@ class Neuron {
 		std::vector<float> _weights;
 		float _bias;
 		Activation _activation;
+	friend class ChampionIO;
 };

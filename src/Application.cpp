@@ -97,7 +97,12 @@ void Application::run() {
 					if (result.completedLap && result.lapTime < _bestLapTime) {
 						_bestLapTime = result.lapTime;
 						_bestNetwork = best.network();
-						std::cout << "Nouveau record : " << _bestLapTime << " s" << std::endl;
+						std::filesystem::create_directories("circuits");
+						std::ofstream output{"circuits/rectangle.f1", std::ios::binary | std::ios::trunc};
+						if (!output)
+							throw IOError("Cannot open champion file for writing");
+						ChampionIO::write(output, _track, *_bestNetwork, _bestLapTime);
+						std::cout << "Nouveau record sauvegarde: " << _bestLapTime << " s" << std::endl;
 					}
 
 					std::cout << "Generation " << _generation

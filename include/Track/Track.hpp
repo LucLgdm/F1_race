@@ -43,4 +43,6 @@ class Track {
 		float _width;
 		float _height;
 		float _roadWidth;
+	friend class ChampionIO;
 };
+	

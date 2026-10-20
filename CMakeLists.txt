@@ -51,12 +51,14 @@ if(BUILD_TESTING)
 		tests/test_selection.cpp
 		tests/test_mutation.cpp
 		tests/test_lap.cpp
+		tests/test_champion_io.cpp
 		src/ML/Neuron.cpp
 		src/ML/Layer.cpp
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
 		src/Track/Track.cpp
 		src/Track/LapCounter.cpp
+		src/Track/ChampionIO.cpp
 	)
 
 	target_include_directories(F1_tests PRIVATE

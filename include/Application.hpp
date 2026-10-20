@@ -17,11 +17,14 @@
 #include <algorithm>
 #include <limits>
 #include <optional>
+#include <filesystem>
+#include <fstream>
 
 #include "Exception.hpp"
 #include "Renderer.hpp"
 #include "ML/Agent.hpp"
 #include "ML/Selection.hpp"
+#include "Track/ChampionIO.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;

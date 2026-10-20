@@ -25,4 +25,5 @@ class Network {
 
 	private:
 		std::vector<Layer> _layers;
+	friend class ChampionIO;
 };

@@ -26,4 +26,5 @@ class Layer {
 	
 	private:
 		std::vector<Neuron> _neurons;
+	friend class ChampionIO;
 };
