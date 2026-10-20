@@ -29,8 +29,7 @@ TEST_CASE("La selection fonctionne avec un seul candidat", "[selection]") {
 	REQUIRE(selectBestIndex(scores) == 0);
 }
 
-TEST_CASE("La selection conserve le premier en cas d'egalite",
-		"[selection]") {
+TEST_CASE("La selection conserve le premier en cas d'egalite", "[selection]") {
 	const std::array<float, 4> scores{
 		5.0f, 20.0f, 20.0f, 3.0f
 	};
@@ -38,8 +37,7 @@ TEST_CASE("La selection conserve le premier en cas d'egalite",
 	REQUIRE(selectBestIndex(scores) == 1);
 }
 
-TEST_CASE("La selection fonctionne si aucun agent ne progresse",
-		"[selection]") {
+TEST_CASE("La selection fonctionne si aucun agent ne progresse", "[selection]") {
 	const std::array<float, 3> scores{0.0f, 0.0f, 0.0f};
 
 	REQUIRE(selectBestIndex(scores) == 0);
@@ -48,6 +46,51 @@ TEST_CASE("La selection fonctionne si aucun agent ne progresse",
 TEST_CASE("La selection refuse une population vide", "[selection]") {
 	REQUIRE_THROWS_AS(
 		selectBestIndex(std::span<const float>{}),
+		neuralError
+	);
+}
+
+TEST_CASE("Un tour termine gagne contre une progression incomplete", "[selection]") {
+	const std::array<AgentScore, 2> scores{{
+		{false, 0.0f, 5000.0f},
+		{true, 60.0f, 2600.0f}
+	}};
+
+	REQUIRE(selectBestIndex(scores) == 1);
+}
+
+TEST_CASE("Le tour le plus rapide est selectionne", "[selection]") {
+	const std::array<AgentScore, 3> scores{{
+		{true, 55.0f, 2600.0f},
+		{true, 49.0f, 2550.0f},
+		{true, 52.0f, 2700.0f}
+	}};
+
+	REQUIRE(selectBestIndex(scores) == 1);
+}
+
+TEST_CASE("Sans tour termine la meilleure progression gagne", "[selection]") {
+	const std::array<AgentScore, 3> scores{{
+		{false, 0.0f, 50.0f},
+		{false, 0.0f, 150.0f},
+		{false, 0.0f, 100.0f}
+	}};
+
+	REQUIRE(selectBestIndex(scores) == 1);
+}
+
+TEST_CASE("Des temps identiques conservent le premier candidat", "[selection]") {
+	const std::array<AgentScore, 2> scores{{
+		{true, 50.0f, 2600.0f},
+		{true, 50.0f, 2700.0f}
+	}};
+
+	REQUIRE(selectBestIndex(scores) == 0);
+}
+
+TEST_CASE("Le classement des agents refuse une population vide", "[selection]") {
+	REQUIRE_THROWS_AS(
+		selectBestIndex(std::span<const AgentScore>{}),
 		neuralError
 	);
 }

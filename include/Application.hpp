@@ -15,6 +15,8 @@
 
 #include <iostream>
 #include <algorithm>
+#include <limits>
+#include <optional>
 
 #include "Exception.hpp"
 #include "Renderer.hpp"
@@ -44,6 +46,10 @@ class Application {
 		bool _generationEvaluated = false;
 		std::mt19937 _generator{std::random_device{}()};
 		std::size_t _generation = 1;
+
+		// Optional is a Network which doen't exist yet
+		std::optional<Network> _bestNetwork;
+		float _bestLapTime = std::numeric_limits<float>::infinity();
 
 		void initGLFW();
 		void initOpenGL();

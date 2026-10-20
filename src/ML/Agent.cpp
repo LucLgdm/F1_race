@@ -35,7 +35,8 @@ void Agent::step(float dt) {
 	const bool collided = _simulation.step(controls, dt);
 	_progress.update(_track.progressAt(_simulation.car().position()), dt);
 	_elapsedTime += dt;
-	if (collided || _elapsedTime >= _maxDuration || _progress.hasStalled(_maxTimeWithoutProgress))
+	if (collided || _elapsedTime >= _maxDuration || _progress.hasStalled(_maxTimeWithoutProgress)
+		|| _simulation.lapCount() >= 1)
 		_active = false;
 }
 

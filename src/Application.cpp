@@ -84,19 +84,33 @@ void Application::run() {
 												[](const Agent& agent){return !agent.isActive();});
 				
 				if (allFinished) {
-					std::vector<float> scores;
+					std::vector<AgentScore> scores;
 					scores.reserve(_agents.size());
-					for (const Agent& agent : _agents)	
-						scores.push_back(agent.bestProgress());
+
+					for (const Agent& agent : _agents)
+						scores.push_back(AgentScore{agent.lapCount() > 0, agent.lastLapTime(), agent.bestProgress()});
+
 					const std::size_t bestIndex = selectBestIndex(scores);
 					const Agent& best = _agents[bestIndex];
+					const AgentScore& result = scores[bestIndex];
+
+					if (result.completedLap && result.lapTime < _bestLapTime) {
+						_bestLapTime = result.lapTime;
+						_bestNetwork = best.network();
+						std::cout << "Nouveau record : " << _bestLapTime << " s" << std::endl;
+					}
+
 					std::cout << "Generation " << _generation
-								<< " | Meilleur agent : " << bestIndex
-								<< " | Progression : " << best.bestProgress() << " m"
-								<< " | Tour : " << best.lapCount();
-					if (best.lapCount() > 0)
-						std::cout << " | Dernier tour : " << best.lastLapTime() << " s";
+								<< " | Meilleur agent : " << bestIndex;
+					if (result.completedLap) {
+						std::cout << " | Tour termine en " << result.lapTime << " s";
+					}else{
+						std :: cout << " | Progression : " << result.progress << " m";
+					}
+					if (_bestNetwork.has_value())
+						std::cout << " | Record global : " << _bestLapTime << " s";
 					std::cout << std::endl;
+
 					_generationEvaluated = true; 
 					evolvePopulation(bestIndex);
 				}
@@ -131,7 +145,8 @@ void Application::run() {
 
 void Application::evolvePopulation(std::size_t bestIndex) {
 	// independent copies before the modification
-	const Network parent = _agents.at(bestIndex).network();
+	const Network parent = _bestNetwork.has_value() ? *_bestNetwork : _agents.at(bestIndex).network();
+
 	std::size_t offspringIndex = 0;
 
 	for (std::size_t i = 0; i < _agents.size(); ++i) {
@@ -150,7 +165,12 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 				agent.setNetwork(parent);
 				agent.mutateNetwork(0.2f, 0.3f, _generator);
 			}else{
-				agent.randomizeNetwork();
+				if (_bestNetwork.has_value()) {
+					agent.setNetwork(parent);
+					agent.mutateNetwork(0.2f, 0.3f, _generator);
+				}else{
+					agent.randomizeNetwork();
+				}
 			}
 		}
 		agent.reset();
