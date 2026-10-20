@@ -31,13 +31,15 @@ void Application::init() {
 	constexpr float longitudinalOffset = 3.0f;
 	constexpr float lateralOffset = 3.0f;
 	const Vec2 center = _track.startPosition();
-	const float halfGridLength = static_cast<float>(populationSize - 1) * longitudinalOffset / 2.0f;
 
 	_agents.reserve(populationSize);
 	for (std::size_t i = 0; i < populationSize; ++i) {
 		const float side = (i % 2 == 0) ? 1.0f : -1.0f;
-		const Vec2 startPosition{center.x + halfGridLength - static_cast<float>(i) * longitudinalOffset,
-								 center.y + side * lateralOffset};
+		constexpr float distanceBeforeLine = 6.0f;
+
+		const Vec2 startPosition{
+			center.x - distanceBeforeLine - static_cast<float>(i) * longitudinalOffset,
+			center.y + side * lateralOffset};
 		_agents.emplace_back(_track, startPosition);
 	}
 }
@@ -62,8 +64,20 @@ void Application::run() {
 		handleKey(controls);
 
 		while (accumulator >= fixedDt) {
-			for (Agent& agent : _agents)
+			for (std::size_t i = 0; i < _agents.size(); ++i) {
+				Agent& agent = _agents[i];
+				if (!agent.isActive())
+					continue;
+				
 				agent.step(static_cast<float>(fixedDt));
+
+				if (agent.trackFinished()) {
+					std::cout << "Agent " << i
+								<< " | Tour " << agent.lapCount()
+								<< " | Temps " << agent.lastLapTime()
+								<< " s" << std::endl;
+				}
+			}
 
 			if (!_generationEvaluated && !_agents.empty()) {
 				const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
@@ -75,8 +89,14 @@ void Application::run() {
 					for (const Agent& agent : _agents)	
 						scores.push_back(agent.bestProgress());
 					const std::size_t bestIndex = selectBestIndex(scores);
-					std::cout << "Fin des essais" << " | Meilleur agent : " << bestIndex
-								<< " | Progression : " << scores[bestIndex] << " m" << std::endl;
+					const Agent& best = _agents[bestIndex];
+					std::cout << "Generation " << _generation
+								<< " | Meilleur agent : " << bestIndex
+								<< " | Progression : " << best.bestProgress() << " m"
+								<< " | Tour : " << best.lapCount();
+					if (best.lapCount() > 0)
+						std::cout << " | Dernier tour : " << best.lastLapTime() << " s";
+					std::cout << std::endl;
 					_generationEvaluated = true; 
 					evolvePopulation(bestIndex);
 				}

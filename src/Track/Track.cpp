@@ -7,7 +7,7 @@
 /*   Updated: 2026/10/10 22:44:53 by Luc      */
 /* ****************************************** */
 
-#include "Track.hpp"
+#include "Track/Track.hpp"
 
 Track::Track(float width, float height, float roadWidth) : _width(width), _height(height), _roadWidth(roadWidth) {
 	if (!std::isfinite(width) || !std::isfinite(height) || !std::isfinite(roadWidth)

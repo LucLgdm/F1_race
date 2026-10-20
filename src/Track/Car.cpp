@@ -7,7 +7,7 @@
 /*   Updated: 2026/10/05 15:46:38 by Luc      */
 /* ****************************************** */
 
-#include "Car.hpp"
+#include "Track/Car.hpp"
 
 Car::Car(Vec2 position) noexcept : _position(position) {}
 

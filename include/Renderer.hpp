@@ -17,8 +17,8 @@
 #include <iostream>
 
 #include "Exception.hpp"
-#include "Track.hpp"
-#include "Car.hpp"
+#include "Track/Track.hpp"
+#include "Track/Car.hpp"
 
 class Renderer {
 	public:

@@ -30,6 +30,9 @@ class Agent {
 		[[nodiscard]] float progress() const noexcept;
 		[[nodiscard]] float bestProgress() const noexcept;
 		[[nodiscard]] const Network& network() const noexcept;
+		[[nodiscard]] std::size_t lapCount() const noexcept;
+		[[nodiscard]] float lastLapTime() const noexcept;
+		[[nodiscard]] bool trackFinished() const noexcept;
 
 		void setNetwork(const Network& network);
 		void mutateNetwork(float probability, float strength, std::mt19937& generator);

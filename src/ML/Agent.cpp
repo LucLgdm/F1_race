@@ -39,6 +39,10 @@ void Agent::step(float dt) {
 		_active = false;
 }
 
+/*******************************
+ * Guetters & Setters
+ ******************************/
+
 const Car& Agent::car() const noexcept {
 	return _simulation.car();
 }
@@ -61,6 +65,18 @@ const Network& Agent::network() const noexcept {
 
 void Agent::setNetwork(const Network& network) {
 	_network = network;
+}
+
+std::size_t Agent::lapCount() const noexcept {
+	return _simulation.lapCount();
+}
+
+float Agent::lastLapTime() const noexcept {
+	return _simulation.lastLapTime();
+}
+
+bool Agent::trackFinished() const noexcept {
+	return _simulation.trackFinished();
 }
 
 void Agent::reset() {

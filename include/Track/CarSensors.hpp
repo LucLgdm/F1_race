@@ -13,9 +13,9 @@
 #include <numbers>
 #include <cmath>
 
-#include "Car.hpp"
-#include "Track.hpp"
-#include "CarObservation.hpp"
+#include "Track/Car.hpp"
+#include "Track/Track.hpp"
+#include "Track/CarObservation.hpp"
 
 [[nodiscard]] inline std::array<float, 5> measureWallDistances(const Car& car, const Track& track, float sensorRange) {
 	constexpr float pi = std::numbers::pi_v<float>;

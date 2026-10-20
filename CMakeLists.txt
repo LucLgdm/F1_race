@@ -11,8 +11,9 @@ add_executable(F1_race
 	src/Application.cpp
 	src/Simulation.cpp
 	src/Renderer.cpp
-	src/Car.cpp
-	src/Track.cpp
+	src/Track/Car.cpp
+	src/Track/Track.cpp
+	src/Track/LapCounter.cpp
 	src/ML/Neuron.cpp
 	src/ML/Layer.cpp
 	src/ML/Network.cpp
@@ -49,11 +50,13 @@ if(BUILD_TESTING)
 		tests/test_progress.cpp
 		tests/test_selection.cpp
 		tests/test_mutation.cpp
+		tests/test_lap.cpp
 		src/ML/Neuron.cpp
 		src/ML/Layer.cpp
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
-		src/Track.cpp
+		src/Track/Track.cpp
+		src/Track/LapCounter.cpp
 	)
 
 	target_include_directories(F1_tests PRIVATE
