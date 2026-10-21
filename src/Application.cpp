@@ -71,6 +71,17 @@ void Application::run() {
 		stats.hasChampion = _bestNetwork.has_value();
 		stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0.0f;
 		_imGuiLayer.render(_trainingSettings, stats);
+		if (const auto request = _imGuiLayer.takeLoadRequest()) {
+			try {
+				loadChampion(*request);
+				accumulator = 0.0;
+				_imGuiLayer.setError("");
+			}catch (const IOError& error) {
+				_trainingSettings.paused = true;
+				accumulator = 0.0;
+				_imGuiLayer.setError(error.what());
+			}
+		}
 
 
 		/*******************************
@@ -183,6 +194,9 @@ void Application::stepTraining(float dt) {
 		}
 	}
 
+	if (_replayChampion)
+		return;
+
 	if (!_generationEvaluated && !_agents.empty()) {
 		const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
 										[](const Agent& agent){return !agent.isActive();});
@@ -202,7 +216,7 @@ void Application::stepTraining(float dt) {
 				_bestLapTime = result.lapTime;
 				_bestNetwork = best.network();
 				std::filesystem::create_directories("circuits");
-				std::ofstream output{"circuits/rectangle.f1", std::ios::binary | std::ios::trunc};
+				std::ofstream output{_championFile, std::ios::binary | std::ios::trunc};
 				if (!output)
 					throw IOError("Cannot open champion file for writing");
 				ChampionIO::write(output, _track, *_bestNetwork, _bestLapTime);
@@ -227,6 +241,9 @@ void Application::stepTraining(float dt) {
 }
 
 
+/*******************************
+ * Tools
+ ******************************/
 
 void Application::handleKey(CarControls& controls) {
 	// General
@@ -241,6 +258,43 @@ void Application::handleKey(CarControls& controls) {
 	const bool right = glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS;
 
 	controls.steering = static_cast<float>(right) - static_cast<float>(left);
+}
+
+void Application::loadChampion(const ChampionLoadRequest& request) {
+	std::ifstream input{request.path, std::ios::binary};
+	if (!input)
+		throw IOError("Cannont open champion file");
+
+	SavedChampion saved = ChampionIO::read(input);
+
+	_agents.clear();
+	_track = std::move(saved.track);
+	_bestNetwork = std::move(saved.network);
+	_bestLapTime = saved.lapTime;
+	_championFile = request.path;
+	_replayChampion = request.mode == ChampionLoadMode::Replay;
+	const std::size_t populationSize = _replayChampion ? 1 : 20;
+	const Vec2 center = _track.startPosition();
+	const Vec2 startPosition{center.x - 6.0f, center.y};
+	_agents.reserve(populationSize);
+
+	for (std::size_t i = 0; i < populationSize; ++i) {
+		_agents.emplace_back(_track, startPosition);
+		_agents.back().setNetwork(*_bestNetwork);
+	}
+	_generationEvaluated = false;
+
+	if (_replayChampion) {
+		_generation = 1;
+	}else{
+		_generation = 0;
+		evolvePopulation(0);
+	}
+
+	_trainingSettings.paused = true;
+	_trainingSettings.showSimulation = true;
+	if (_replayChampion)
+		_trainingSettings.accelerated = false;	
 }
 
 /*******************************
@@ -275,3 +329,4 @@ void Application::initOpenGL() {
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 }
+

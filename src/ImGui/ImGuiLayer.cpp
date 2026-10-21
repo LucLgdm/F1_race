@@ -96,7 +96,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	ImGui::Checkbox("Pause", &settings.paused);
 	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
 	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
-	
+
 	ImGui::Separator();
 	ImGui::Text("Generation : %llu", static_cast<unsigned long long> (stats.generation));
 	ImGui::Text("Agents actifs : %llu / %llu",
@@ -108,13 +108,17 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	else
 		ImGui::TextUnformatted("Aucun champion");
 	
-	ImGui::End();
+	ImGui::Separator();
+	ImGui::InputText("Fichier Champion", _championPath, sizeof(_championPath));
+	if (ImGui::Button("Reprendre l4entrainement")) {
+		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::ResumeTraining};
+	}
 
-	ImGui::SetNextWindowPos(ImVec2(0, panelWidth));
-	ImGui::SetNextWindowSize(ImVec2(panelWidth, panelWidth));
-	ImGui::Begin("Properties");
+	if (ImGui::Button("Voir le champion"))
+		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::Replay};
 
-	ImGui::TextUnformatted("F1 race - 2");
+	if (!_errorMessage.empty())
+		ImGui::TextWrapped("%s", _errorMessage.c_str());
 
 	ImGui::End();
 }
@@ -127,3 +131,10 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 /*******************************
  * Tools
  ******************************/
+std::optional<ChampionLoadRequest> ImGuiLayer::takeLoadRequest() {
+	return std::exchange(_loadRequest, std::nullopt);
+}
+
+void ImGuiLayer::setError(std::string message) {
+	_errorMessage = message;
+}

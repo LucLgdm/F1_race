@@ -25,6 +25,8 @@
 #include "ImGui/TrainingUI.hpp"
 
 #include <iostream>
+#include <optional>
+#include <utility>
 
 class ImGuiLayer {
 	public:
@@ -39,6 +41,10 @@ class ImGuiLayer {
 		void endFrame();
 		void shutdown();
 
+		[[nodiscard]] std::optional<ChampionLoadRequest> takeLoadRequest();
+
+		void setError(std::string message);
+
 
 	private:
 		bool _initialized = false;
@@ -46,4 +52,8 @@ class ImGuiLayer {
 		float _openglheight;
 		float _viewPortWidth;
 		float _viewPortHeight;
+
+		char _championPath[512] = "circuits/rectangle.f1";
+		std::optional<ChampionLoadRequest> _loadRequest;
+		std::string _errorMessage;
 };

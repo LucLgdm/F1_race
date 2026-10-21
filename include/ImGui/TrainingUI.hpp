@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string>
 
 struct TrainingSettings {
 	bool paused = true;
@@ -24,4 +25,15 @@ struct TrainingStats {
 
 	bool hasChampion = false;
 	float bestLapTime = 0.0f;
+};
+
+
+enum class ChampionLoadMode {
+	ResumeTraining,
+	Replay
+};
+
+struct ChampionLoadRequest {
+	std::string path;
+	ChampionLoadMode mode;
 };

@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <chrono>
+#include <utility>
 
 #include "Exception.hpp"
 #include "Renderer.hpp"
@@ -60,8 +61,11 @@ class Application {
 
 		ImGuiLayer _imGuiLayer;
 		TrainingSettings _trainingSettings;
+		bool _replayChampion = false;
+		std::string _championFile = "circuits/rectangle.f1";
 
 		void initGLFW();
 		void initOpenGL();
 		void evolvePopulation(std::size_t bestIndex);
+		void loadChampion(const ChampionLoadRequest& request);
 };
