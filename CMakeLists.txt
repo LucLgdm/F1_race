@@ -21,6 +21,7 @@ add_executable(F1_race
 	src/ML/testML.cpp
 	src/ML/Agent.cpp
 	src/ML/ProgressTracker.cpp
+	src/ImGui/ImGuiLayer.cpp
 )
 
 target_compile_features(F1_race PRIVATE cxx_std_20)
@@ -29,8 +30,20 @@ set_target_properties(F1_race PROPERTIES
 	CXX_EXTENSIONS OFF
 )
 
+target_sources(F1_race PRIVATE
+	src/ImGui/ImGuiLayer.cpp
+	src/ImGui/imgui.cpp
+	src/ImGui/imgui_draw.cpp
+	src/ImGui/imgui_tables.cpp
+	src/ImGui/imgui_widgets.cpp
+	src/ImGui/imgui_impl_glfw.cpp
+	src/ImGui/imgui_impl_opengl3.cpp
+)
+
 target_include_directories(F1_race PRIVATE
 	"${CMAKE_CURRENT_SOURCE_DIR}/include"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui/backends"
 )
 
 target_link_libraries(F1_race PRIVATE

@@ -25,6 +25,7 @@
 #include "ML/Agent.hpp"
 #include "ML/Selection.hpp"
 #include "Track/ChampionIO.hpp"
+#include "ImGui/ImGuiLayer.hpp"
 
 const int HEIGHT = 600;
 const int WIDTH = 800;
@@ -53,6 +54,8 @@ class Application {
 		// Optional is a Network which doen't exist yet
 		std::optional<Network> _bestNetwork;
 		float _bestLapTime = std::numeric_limits<float>::infinity();
+
+		ImGuiLayer _imGuiLayer;
 
 		void initGLFW();
 		void initOpenGL();

@@ -42,6 +42,8 @@ void Application::init() {
 			center.y + side * lateralOffset};
 		_agents.emplace_back(_track, startPosition);
 	}
+
+	_imGuiLayer.init(_window, WIDTH, HEIGHT);
 }
 
 void Application::run() {
@@ -52,6 +54,9 @@ void Application::run() {
 	
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
+
+		_imGuiLayer.beginFrame();
+		_imGuiLayer.render();
 
 		const double time = glfwGetTime();
 		const double frameDt = time - lastTime;
@@ -144,6 +149,7 @@ void Application::run() {
 			}
 		}	
 
+		_imGuiLayer.endFrame();
 		glfwSwapBuffers(_window);
 	}
 }
