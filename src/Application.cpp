@@ -55,100 +55,76 @@ void Application::run() {
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
 
+		/*******************************
+		 * UI
+		 ******************************/
+		
 		_imGuiLayer.beginFrame();
-		_imGuiLayer.render();
+		TrainingStats stats;
 
+		stats.generation = _generation;
+		stats.populationSize = _agents.size();
+
+		stats.activeAgents = static_cast<std::size_t>(std::count_if(_agents.begin(), _agents.end(),
+														[](const Agent& agent) {return agent.isActive();}));
+
+		stats.hasChampion = _bestNetwork.has_value();
+		stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0.0f;
+		_imGuiLayer.render(_trainingSettings, stats);
+
+
+		/*******************************
+		 * Simulation
+		 ******************************/
 		const double time = glfwGetTime();
 		const double frameDt = time - lastTime;
 		lastTime = time;
 
 		// Limite le rattrapage apres une pause ou un blocage.
-        accumulator += std::clamp(frameDt, 0.0, 0.25);
+		if (_trainingSettings.paused) {
+			accumulator = 0.0;
+		}else if (_trainingSettings.accelerated) {
+			accumulator = 0.0;
+			using Clock = std::chrono::steady_clock;
+			const auto deadline = Clock::now() + std::chrono::milliseconds{8};
+			do {
+				stepTraining(static_cast<float>(fixedDt));
+			} while (Clock::now() < deadline);
+		}else{
+			accumulator += std::clamp(frameDt, 0.0, 0.25);
+			while (accumulator >= fixedDt) {
+				stepTraining(static_cast<float>(fixedDt));
+				accumulator -= fixedDt;
+			}
+		}
 
 		CarControls controls{};
 		handleKey(controls);
 
-		while (accumulator >= fixedDt) {
-			for (std::size_t i = 0; i < _agents.size(); ++i) {
-				Agent& agent = _agents[i];
-				if (!agent.isActive())
-					continue;
+		/*******************************
+		 * Render
+		 ******************************/
+		if (_trainingSettings.showSimulation && !_agents.empty()) {	
+			int width = 0;
+			int height = 0;
+			glfwGetFramebufferSize(_window, &width, &height);
+			if (width > 0 && height > 0) {
+				glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				
-				agent.step(static_cast<float>(fixedDt));
-
-				if (agent.trackFinished()) {
-					std::cout << "Agent " << i
-								<< " | Tour " << agent.lapCount()
-								<< " | Temps " << agent.lastLapTime()
-								<< " s" << std::endl;
-				}
-			}
-
-			if (!_generationEvaluated && !_agents.empty()) {
-				const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
-												[](const Agent& agent){return !agent.isActive();});
-				
-				if (allFinished) {
-					std::vector<AgentScore> scores;
-					scores.reserve(_agents.size());
-
+				// The camera follows only the first car
+				const auto leader = std::max_element(_agents.begin(), _agents.end(),
+									[](const Agent& left, const Agent& right) {
+										return left.progress() < right.progress();
+									});
+				if (leader != _agents.end()) {
+					_renderer.beginFrame(leader->car().position(), width, height);
+					_renderer.drawTrack(_track);
 					for (const Agent& agent : _agents)
-						scores.push_back(AgentScore{agent.lapCount() > 0, agent.lastLapTime(), agent.bestProgress()});
-
-					const std::size_t bestIndex = selectBestIndex(scores);
-					const Agent& best = _agents[bestIndex];
-					const AgentScore& result = scores[bestIndex];
-
-					if (result.completedLap && result.lapTime < _bestLapTime) {
-						_bestLapTime = result.lapTime;
-						_bestNetwork = best.network();
-						std::filesystem::create_directories("circuits");
-						std::ofstream output{"circuits/rectangle.f1", std::ios::binary | std::ios::trunc};
-						if (!output)
-							throw IOError("Cannot open champion file for writing");
-						ChampionIO::write(output, _track, *_bestNetwork, _bestLapTime);
-						std::cout << "Nouveau record sauvegarde: " << _bestLapTime << " s" << std::endl;
-					}
-
-					std::cout << "Generation " << _generation
-								<< " | Meilleur agent : " << bestIndex;
-					if (result.completedLap) {
-						std::cout << " | Tour termine en " << result.lapTime << " s";
-					}else{
-						std :: cout << " | Progression : " << result.progress << " m";
-					}
-					if (_bestNetwork.has_value())
-						std::cout << " | Record global : " << _bestLapTime << " s";
-					std::cout << std::endl;
-
-					_generationEvaluated = true; 
-					evolvePopulation(bestIndex);
+						_renderer.drawCar(agent.car());
 				}
-			}
-			accumulator -= fixedDt;
+			}	
 		}
-
-		// Draw the car here
-		int width = 0;
-		int height = 0;
-		glfwGetFramebufferSize(_window, &width, &height);
-		if (width > 0 && height > 0) {
-			glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			
-			// The camera follows only the first car
-			const auto leader = std::max_element(_agents.begin(), _agents.end(),
-								[](const Agent& left, const Agent& right) {
-									return left.progress() < right.progress();
-								});
-			if (leader != _agents.end()) {
-				_renderer.beginFrame(leader->car().position(), width, height);
-				_renderer.drawTrack(_track);
-				for (const Agent& agent : _agents)
-					_renderer.drawCar(agent.car());
-			}
-		}	
-
 		_imGuiLayer.endFrame();
 		glfwSwapBuffers(_window);
 	}
@@ -189,6 +165,68 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 	++_generation;
 	_generationEvaluated = false;
 }
+
+
+void Application::stepTraining(float dt) {
+	for (std::size_t i = 0; i < _agents.size(); ++i) {
+		Agent& agent = _agents[i];
+		if (!agent.isActive())
+			continue;
+		
+		agent.step(dt);
+
+		if (agent.trackFinished()) {
+			std::cout << "Agent " << i
+						<< " | Tour " << agent.lapCount()
+						<< " | Temps " << agent.lastLapTime()
+						<< " s" << std::endl;
+		}
+	}
+
+	if (!_generationEvaluated && !_agents.empty()) {
+		const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
+										[](const Agent& agent){return !agent.isActive();});
+		
+		if (allFinished) {
+			std::vector<AgentScore> scores;
+			scores.reserve(_agents.size());
+
+			for (const Agent& agent : _agents)
+				scores.push_back(AgentScore{agent.lapCount() > 0, agent.lastLapTime(), agent.bestProgress()});
+
+			const std::size_t bestIndex = selectBestIndex(scores);
+			const Agent& best = _agents[bestIndex];
+			const AgentScore& result = scores[bestIndex];
+
+			if (result.completedLap && result.lapTime < _bestLapTime) {
+				_bestLapTime = result.lapTime;
+				_bestNetwork = best.network();
+				std::filesystem::create_directories("circuits");
+				std::ofstream output{"circuits/rectangle.f1", std::ios::binary | std::ios::trunc};
+				if (!output)
+					throw IOError("Cannot open champion file for writing");
+				ChampionIO::write(output, _track, *_bestNetwork, _bestLapTime);
+				std::cout << "Nouveau record sauvegarde: " << _bestLapTime << " s" << std::endl;
+			}
+
+			std::cout << "Generation " << _generation
+						<< " | Meilleur agent : " << bestIndex;
+			if (result.completedLap) {
+				std::cout << " | Tour termine en " << result.lapTime << " s";
+			}else{
+				std :: cout << " | Progression : " << result.progress << " m";
+			}
+			if (_bestNetwork.has_value())
+				std::cout << " | Record global : " << _bestLapTime << " s";
+			std::cout << std::endl;
+
+			_generationEvaluated = true; 
+			evolvePopulation(bestIndex);
+		}
+	}
+}
+
+
 
 void Application::handleKey(CarControls& controls) {
 	// General

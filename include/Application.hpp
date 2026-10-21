@@ -19,6 +19,7 @@
 #include <optional>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
 
 #include "Exception.hpp"
 #include "Renderer.hpp"
@@ -27,8 +28,8 @@
 #include "Track/ChampionIO.hpp"
 #include "ImGui/ImGuiLayer.hpp"
 
-const int HEIGHT = 600;
-const int WIDTH = 800;
+const int HEIGHT = 1200;
+const int WIDTH = 1600;
 
 class Application {
 	public:
@@ -38,6 +39,8 @@ class Application {
 		void init();
 		void run();
 		void handleKey(CarControls&);
+
+		void stepTraining(float dt);
 
 	private:
 		GLFWwindow* _window = nullptr;
@@ -56,6 +59,7 @@ class Application {
 		float _bestLapTime = std::numeric_limits<float>::infinity();
 
 		ImGuiLayer _imGuiLayer;
+		TrainingSettings _trainingSettings;
 
 		void initGLFW();
 		void initOpenGL();

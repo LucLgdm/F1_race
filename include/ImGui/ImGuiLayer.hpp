@@ -14,7 +14,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "ImGui/imgui.h"
+#include <ImGui/imgui.h>
 #include <ImGui/backends/imgui_impl_glfw.h>
 #include <ImGui/backends/imgui_impl_opengl3.h>
 
@@ -22,24 +22,9 @@
 
 #include "ImGuizmo/ImGuizmo.h"
 #include "ImGui/backends/imgui_spectrum.h"
+#include "ImGui/TrainingUI.hpp"
 
 #include <iostream>
-
-struct TrainingSettings {
-	bool paused = true;
-	bool showSimulation = true;
-	bool accelerated = false;
-	bool showSensors = false;
-};
-
-struct TrainingStats {
-	std::size_t generation = 1;
-	std::size_t activeAgents = 0;
-	std::size_t populationSize = 0;
-
-	bool hasChampion = false;
-	float bestLapTime = 0.0f;
-};
 
 class ImGuiLayer {
 	public:
@@ -49,11 +34,11 @@ class ImGuiLayer {
 		void init(GLFWwindow* window, int width, int height);
 		void beginFrame();
 
-		// void render(TrainingSettings& settings, const TrainingStats& stats);
-		void render();
+		void render(TrainingSettings& settings, const TrainingStats& stats);
 		
 		void endFrame();
 		void shutdown();
+
 
 	private:
 		bool _initialized = false;
@@ -61,5 +46,4 @@ class ImGuiLayer {
 		float _openglheight;
 		float _viewPortWidth;
 		float _viewPortHeight;
-
 };

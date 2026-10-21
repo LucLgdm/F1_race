@@ -88,10 +88,42 @@ void ImGuiLayer::shutdown() {
 /************************************************************************
  * Render
  * **********************************************************************/
-void ImGuiLayer::render() {
+void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) {
+	ImGui::SetNextWindowPos(ImVec2(0, 0));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, panelWidth));
 	ImGui::Begin("Entrainement");
 
-	ImGui::TextUnformatted("F1 race - Neuroevolution");
+	ImGui::Checkbox("Pause", &settings.paused);
+	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
+	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
+	
+	ImGui::Separator();
+	ImGui::Text("Generation : %llu", static_cast<unsigned long long> (stats.generation));
+	ImGui::Text("Agents actifs : %llu / %llu",
+				static_cast<unsigned long long> (stats.activeAgents),
+				static_cast<unsigned long long> (stats.populationSize));
+	
+	if (stats.hasChampion)
+		ImGui::Text("Record : %.3f s", stats.bestLapTime);
+	else
+		ImGui::TextUnformatted("Aucun champion");
+	
+	ImGui::End();
+
+	ImGui::SetNextWindowPos(ImVec2(0, panelWidth));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, panelWidth));
+	ImGui::Begin("Properties");
+
+	ImGui::TextUnformatted("F1 race - 2");
 
 	ImGui::End();
 }
+
+
+
+
+
+
+/*******************************
+ * Tools
+ ******************************/
