@@ -2,6 +2,19 @@ cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --target F1_tests
 ctest --test-dir build --output-on-failure
 
+relire un fichier
+```
+std::ifstream input{
+    "circuits/rectangle.f1",
+    std::ios::binary
+};
+
+if (!input)
+    throw neuralError("Cannot open champion file for reading");
+
+SavedChampion saved = ChampionIO::read(input);
+```
+
 
 modif' à faire :
 	détection continue
