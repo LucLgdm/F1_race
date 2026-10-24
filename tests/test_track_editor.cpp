@@ -165,7 +165,7 @@ TEST_CASE("La lecture de circuits refuse les formats et dimensions invalides", "
 		REQUIRE_THROWS_AS(TrackIO::read(input), IOError);
 	}
 }
-TEST_CASE("Un champion sur un circuit arrondi retrouve son reseau et son tracé", "[editor][champion]") {
+TEST_CASE("Un champion sur un circuit arrondi retrouve son reseau et son trace", "[editor][champion]") {
 	const Track track = roundedLoop();
 	const Network network{std::vector<Layer>{Layer{8, 3, Activation::Tanh}}};
 	std::stringstream data;
