@@ -14,7 +14,7 @@
 
 #include "ML/Loss.hpp"
 
-TEST_CASE("La MSE est nulle pour des predictions exactes", "[loss]") {
+TEST_CASE("La MSE est nulle pour des predictions exactes", "[ml][loss]") {
 	const std::array<float, 2> predictions{0.2f, 0.8f};
 	const std::array<float, 2> targets{0.2f, 0.8f};
 
@@ -22,7 +22,7 @@ TEST_CASE("La MSE est nulle pour des predictions exactes", "[loss]") {
 			== Catch::Approx(0.0f).margin(1e-6f));
 }
 
-TEST_CASE("La MSE correspond au calcul attendu", "[loss]") {
+TEST_CASE("La MSE correspond au calcul attendu", "[ml][loss]") {
 	const std::array<float, 2> predictions{1.0f, 3.0f};
 	const std::array<float, 2> targets{2.0f, 1.0f};
 
@@ -31,7 +31,7 @@ TEST_CASE("La MSE correspond au calcul attendu", "[loss]") {
 			== Catch::Approx(2.5f));
 }
 
-TEST_CASE("La MSE refuse des tailles differentes", "[loss]") {
+TEST_CASE("La MSE refuse des tailles differentes", "[ml][loss]") {
 	const std::array<float, 1> predictions{0.5f};
 	const std::array<float, 2> targets{0.5f, 0.6f};
 
@@ -41,7 +41,7 @@ TEST_CASE("La MSE refuse des tailles differentes", "[loss]") {
 	);
 }
 
-TEST_CASE("La MSE refuse des entrees vides", "[loss]") {
+TEST_CASE("La MSE refuse des entrees vides", "[ml][loss]") {
 	REQUIRE_THROWS_AS(
 		meanSquaredError(std::span<const float>{},
 						std::span<const float>{}),

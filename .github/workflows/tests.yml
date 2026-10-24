@@ -43,9 +43,36 @@ jobs:
       - name: Compiler tout le projet
         run: cmake --build build-ci
 
-      - name: Executer les tests
+      - name: Executer les tests selon la branche
         id: tests
-        run: ctest --test-dir build-ci --output-on-failure --no-tests=error
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          TARGET_BRANCH: ${{ github.base_ref }}
+        run: |
+          args=()
+
+          if [[ "$BRANCH_NAME" == "main" || "$TARGET_BRANCH" == "main" ]]; then
+            echo "Execution de tous les tests"
+          else
+            case "$BRANCH_NAME" in
+              ML|ML/*)
+                echo "Execution des tests ML"
+                args=(-L '^ml$')
+                ;;
+              feature|feature/*|TrackEditor)
+                echo "Execution des tests circuits et editeur"
+                args=(-L '^(track|editor)$')
+                ;;
+              *)
+                echo "Execution de tous les tests"
+                ;;
+            esac
+          fi
+
+          ctest --test-dir build-ci \
+                --output-on-failure \
+                --no-tests=error \
+                "${args[@]}"
 
       - name: Generer le rapport de couverture
         if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}

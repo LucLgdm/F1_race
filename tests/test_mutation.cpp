@@ -15,8 +15,7 @@
 #include <random>
 #include <vector>
 
-TEST_CASE("La mutation traverse les couches sans modifier le parent",
-		"[mutation]") {
+TEST_CASE("La mutation traverse les couches sans modifier le parent", "[ml][mutation]") {
 	const Network parent{
 		std::vector<Layer>{
 			Layer{

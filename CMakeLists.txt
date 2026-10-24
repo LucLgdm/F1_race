@@ -48,8 +48,8 @@ target_include_directories(F1_race PRIVATE
 )
 
 target_link_libraries(F1_race PRIVATE
-    glfw
-    OpenGL::GL
+	glfw
+	OpenGL::GL
 )
 
 # Tests automatiques
@@ -95,19 +95,19 @@ if(BUILD_TESTING)
 	target_link_libraries(F1_tests PRIVATE Catch2::Catch2WithMain)
 
 	include(Catch)
-	catch_discover_tests(F1_tests)
+	catch_discover_tests(F1_tests ADD_TAGS_AS_LABELS)
 	
 	# Code Coverage
 	option(ENABLE_COVERAGE "Enable code coverage" OFF)
 
 	if(ENABLE_COVERAGE)
+		# Adapte F1_race au nom exact de la cible du jeu.
 		foreach(target IN ITEMS F1_race F1_tests)
 			target_compile_options(${target} PRIVATE
 				--coverage
 				-O0
 				-g
 			)
-
 
 			target_link_options(${target} PRIVATE
 				--coverage

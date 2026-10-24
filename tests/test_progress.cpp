@@ -13,7 +13,7 @@
 
 #include "ML/ProgressTracker.hpp"
 
-TEST_CASE("La progression commence a zero quelle que soit la grille", "[progress]") {
+TEST_CASE("La progression commence a zero quelle que soit la grille", "[ml][progress]") {
 	ProgressTracker first{320.0f, 28.5f};
 	ProgressTracker second{320.0f, 291.5f};
 
@@ -29,7 +29,7 @@ TEST_CASE("La progression commence a zero quelle que soit la grille", "[progress
 	REQUIRE(second.progress() == Catch::Approx(5.0f));
 }
 
-TEST_CASE("La progression gere le passage de la ligne dans les deux sens", "[progress]") {
+TEST_CASE("La progression gere le passage de la ligne dans les deux sens", "[ml][progress]") {
 	SECTION("Sens horaire") {
 		ProgressTracker tracker{320.0f, 319.0f};
 
@@ -49,7 +49,7 @@ TEST_CASE("La progression gere le passage de la ligne dans les deux sens", "[pro
 	}
 }
 
-TEST_CASE("Revenir sur ses pas ne rapporte pas une nouvelle progression", "[progress]") {
+TEST_CASE("Revenir sur ses pas ne rapporte pas une nouvelle progression", "[ml][progress]") {
 	ProgressTracker tracker{320.0f, 20.0f};
 
 	tracker.update(30.0f, 0.1f);
@@ -64,7 +64,7 @@ TEST_CASE("Revenir sur ses pas ne rapporte pas une nouvelle progression", "[prog
 	REQUIRE(tracker.bestProgress() == Catch::Approx(10.0f));
 }
 
-TEST_CASE("La progression cumule plusieurs passages par zero", "[progress]") {
+TEST_CASE("La progression cumule plusieurs passages par zero", "[ml][progress]") {
 	ProgressTracker tracker{320.0f, 0.0f};
 
 	// Chaque déplacement reste inférieur à un demi-tour.
@@ -79,7 +79,7 @@ TEST_CASE("La progression cumule plusieurs passages par zero", "[progress]") {
 	REQUIRE(tracker.bestProgress() == Catch::Approx(640.0f));
 }
 
-TEST_CASE("Reset efface la progression et utilise le nouveau depart", "[progress]") {
+TEST_CASE("Reset efface la progression et utilise le nouveau depart", "[ml][progress]") {
 	ProgressTracker tracker{320.0f, 20.0f};
 
 	tracker.update(40.0f, 0.1f);
@@ -94,8 +94,7 @@ TEST_CASE("Reset efface la progression et utilise le nouveau depart", "[progress
 	REQUIRE(tracker.bestProgress() == Catch::Approx(12.0f));
 }
 
-TEST_CASE("Un agent immobile atteint le delai sans progression",
-          "[progress]") {
+TEST_CASE("Un agent immobile atteint le delai sans progression", "[ml][progress]") {
     ProgressTracker tracker{320.0f, 20.0f};
 
     tracker.update(20.0f, 1.0f);
@@ -109,8 +108,7 @@ TEST_CASE("Un agent immobile atteint le delai sans progression",
     REQUIRE(tracker.timeWithoutProgress() == Catch::Approx(3.0f));
 }
 
-TEST_CASE("Les petites avancees cumulees renouvellent le delai",
-          "[progress]") {
+TEST_CASE("Les petites avancees cumulees renouvellent le delai", "[ml][progress]") {
     ProgressTracker tracker{320.0f, 0.0f};
 
     tracker.update(0.2f, 1.0f);
@@ -126,8 +124,7 @@ TEST_CASE("Les petites avancees cumulees renouvellent le delai",
     REQUIRE_FALSE(tracker.hasStalled(3.0f));
 }
 
-TEST_CASE("Revenir au record precedent ne renouvelle pas le delai",
-          "[progress]") {
+TEST_CASE("Revenir au record precedent ne renouvelle pas le delai", "[ml][progress]") {
     ProgressTracker tracker{320.0f, 20.0f};
 
     tracker.update(21.0f, 0.5f); // Nouveau record : délai renouvelé.
@@ -138,8 +135,7 @@ TEST_CASE("Revenir au record precedent ne renouvelle pas le delai",
     REQUIRE(tracker.hasStalled(3.0f));
 }
 
-TEST_CASE("Reset efface aussi le delai et le seuil de progression",
-          "[progress]") {
+TEST_CASE("Reset efface aussi le delai et le seuil de progression", "[ml][progress]") {
     ProgressTracker tracker{320.0f, 20.0f};
 
     tracker.update(25.0f, 1.0f);

@@ -14,7 +14,7 @@
 
 #include "ML/Neuron.hpp"
 
-TEST_CASE("Le neurone calcule sa somme ponderee", "[neuron]") {
+TEST_CASE("Le neurone calcule sa somme ponderee", "[ml][neuron]") {
 	const Neuron neuron({0.4f, -0.2f}, 0.1f, Activation::Linear);
 	const std::array<float, 2> inputs{0.5f, 0.8f};
 
@@ -23,7 +23,7 @@ TEST_CASE("Le neurone calcule sa somme ponderee", "[neuron]") {
 	REQUIRE(neuron.forward(inputs) == Catch::Approx(0.14f));
 }
 
-TEST_CASE("ReLU annule une somme negative", "[neuron]") {
+TEST_CASE("ReLU annule une somme negative", "[ml][neuron]") {
 	const Neuron neuron({1.0f, -2.0f}, 0.0f, Activation::ReLU);
 	const std::array<float, 2> inputs{1.0f, 1.0f};
 
@@ -32,14 +32,14 @@ TEST_CASE("ReLU annule une somme negative", "[neuron]") {
 	REQUIRE(neuron.forward(inputs) == 0.0f);
 }
 
-TEST_CASE("ReLU conserve une somme positive", "[neuron]") {
+TEST_CASE("ReLU conserve une somme positive", "[ml][neuron]") {
 	const Neuron neuron({1.0f, 2.0f}, 0.5f, Activation::ReLU);
 	const std::array<float, 2> inputs{1.0f, 1.0f};
 
 	REQUIRE(neuron.forward(inputs) == Catch::Approx(3.5f));
 }
 
-TEST_CASE("Le neurone refuse un nombre incorrect d'entrees", "[neuron]") {
+TEST_CASE("Le neurone refuse un nombre incorrect d'entrees", "[ml][neuron]") {
 	const Neuron neuron({0.4f, -0.2f}, 0.1f);
 	const std::array<float, 1> inputs{0.5f};
 
@@ -54,7 +54,7 @@ TEST_CASE("Le neurone refuse un nombre incorrect d'entrees", "[neuron]") {
  * Nouveau biais : \(0 - 0.1 \times 4\)	\(-0.4\)
  * Nouvelle sortie : \(0.2 \times 2 - 0.4\)	\(0\)
  ***************************************************************/
-TEST_CASE("Le neurone effectue une etape d'apprentissage", "[neuron]") {
+TEST_CASE("Le neurone effectue une etape d'apprentissage", "[ml][neuron]") {
 	Neuron neuron({1.0f}, 0.0f, Activation::Linear);
 	const std::array<float, 1> inputs{2.0f};
 
