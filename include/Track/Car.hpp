@@ -25,7 +25,7 @@ struct CarControls {
 // noexcept		 : the operation doesn't send an exception
 class Car {
 	public:
-		explicit Car(Vec2 position = {}) noexcept;
+		explicit Car(Vec2 position = {}, float heading = 0.0f) noexcept;
 
 		void update(const CarControls& controls, float deltaTime);
 

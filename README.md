@@ -1,5 +1,9 @@
 # F1_race
 
+Un **éditeur de circuits OpenGL / ImGui** est disponible : pièces droites ou arrondies, manipulation
+à la souris, sauvegarde, sélection de circuit et essai de conduite. Voir le [guide de l’éditeur](docs/TrackEditor.md).
+
+
 A top-down racing simulation written in C++20 with OpenGL and a neural network implemented from scratch. Twenty independent driving agents now learn through neuroevolution: evaluate driving trials, select a parent, preserve an elite, mutate descendants, and repeat.
 
 The project combines vehicle simulation, numerical observations, supervised backpropagation exercises, evolutionary driving, timed lap validation, and persistent champion/track files. A future reinforcement-learning implementation will provide a second autonomous learning approach for comparison.

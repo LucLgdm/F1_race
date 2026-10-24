@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "ImGui/ImGuiLayer.hpp"
+#include <cstdio>
 
 constexpr float panelWidth = 350.0f;
 
@@ -90,9 +91,10 @@ void ImGuiLayer::shutdown() {
  * **********************************************************************/
 void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) {
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(panelWidth, panelWidth));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, 440));
 	ImGui::Begin("Entrainement");
 
+	if (ImGui::Button("Editeur de circuit")) _editorRequest = true;
 	ImGui::Checkbox("Pause", &settings.paused);
 	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
 	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
@@ -110,7 +112,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	
 	ImGui::Separator();
 	ImGui::InputText("Fichier Champion", _championPath, sizeof(_championPath));
-	if (ImGui::Button("Reprendre l4entrainement")) {
+	if (ImGui::Button("Reprendre l entrainement")) {
 		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::ResumeTraining};
 	}
 
@@ -137,4 +139,8 @@ std::optional<ChampionLoadRequest> ImGuiLayer::takeLoadRequest() {
 
 void ImGuiLayer::setError(std::string message) {
 	_errorMessage = message;
+}
+
+void ImGuiLayer::setChampionPath(const std::string& path) {
+	std::snprintf(_championPath, sizeof(_championPath), "%s", path.c_str());
 }

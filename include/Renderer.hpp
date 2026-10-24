@@ -29,8 +29,10 @@ class Renderer {
 		void beginFrame(Vec2 cameraPosition,int frameBufferWidth, int frameBufferHeight);
 		void drawCar(const Car& car);
 		void drawTrack(const Track& track);
+		void drawSensors(const Car& car, const Track& track);
 
 	private:
+		GLuint _trackVAO = 0, _trackVBO = 0;
 		GLuint _carVAO = 0;
 		GLuint _carVBO = 0;
 		GLuint _shaderProgram = 0;

@@ -29,12 +29,12 @@
 	return distances;
 }
 
-[[nodiscard]] inline CarObservation observeCar(const Car& car, const Track& track, float sensorRange) {
+[[nodiscard]] inline CarObservation observeCar(const Car& car, const Track& track, float sensorRange, const TrackLocation* location = nullptr) {
 	CarObservation observation;
 	observation.wallDistance = measureWallDistances(car, track, sensorRange);
 	observation.speed = car.speed();
 
-	const float trackHeading = track.referenceHeading(car.position());
+	const float trackHeading = location ? location->heading : track.referenceHeading(car.position());
 	observation.headingError = std::remainder(car.heading() - trackHeading, 2.0f * std::numbers::pi_v<float>);
 
 	return observation;

@@ -14,7 +14,7 @@ Agent::Agent(const Track& track, Vec2 startPosition): _track(track), _simulation
 				_network(std::vector<Layer>{Layer{8 , 16, Activation::Tanh},
 											Layer{16, 16, Activation::Tanh},
 											Layer{16, 3, Activation::Tanh}}),
-			_progress(track.length(), track.progressAt(startPosition)) {}
+			_progress(track.length(), track.progressAt(startPosition)), _maxDuration(std::max(120.0f, track.length() / 5.0f)) {}
 
 void Agent::step(float dt) {
 	if (!_active)
@@ -33,7 +33,7 @@ void Agent::step(float dt) {
 	controls.brake    = std::clamp(outputs[2], 0.0f, 1.0f);
 
 	const bool collided = _simulation.step(controls, dt);
-	_progress.update(_track.progressAt(_simulation.car().position()), dt);
+	_progress.update(_simulation.location().coordinate, dt);
 	_elapsedTime += dt;
 	if (collided || _elapsedTime >= _maxDuration || _progress.hasStalled(_maxTimeWithoutProgress)
 		|| _simulation.lapCount() >= 1)
@@ -82,7 +82,7 @@ bool Agent::trackFinished() const noexcept {
 
 void Agent::reset() {
 	_simulation.reset();
-	_progress.reset(_track.progressAt(_simulation.car().position()));
+	_progress.reset(_simulation.location().coordinate);
 	_active = true;
 	_elapsedTime = 0.0f;
 }

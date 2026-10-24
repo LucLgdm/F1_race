@@ -8,6 +8,7 @@
 /* ****************************************** */
 
 #include "Track/ChampionIO.hpp"
+#include "Track/TrackIO.hpp"
 
 namespace {
 	const char* activationName(Activation activation) {
@@ -63,11 +64,10 @@ void ChampionIO::write(std::ostream& output, const Track& track, const Network& 
 	output.imbue(std::locale::classic());
 	output << std::setprecision(std::numeric_limits<float>::max_digits10);
 
-	output << "F1_CHAMPION 1" << std::endl;
-	output << "RECTANGLE " 
-			<< track._width << ' '
-			<< track._height << ' '
-			<< track._roadWidth << std::endl;
+	if (!track.issues().empty())
+		throw IOError("Cannot save a champion on an invalid track");
+	output << "F1_CHAMPION 2\n";
+	TrackIO::write(output, track);
 
 	output << "OBSERVATIONS 1 40 50" << std::endl;
 	output << "CONTROLS 1" << std::endl;
@@ -101,14 +101,19 @@ SavedChampion ChampionIO::read(std::istream& input) {
 
 	expect(input, "F1_CHAMPION");
 	int version;
-	if (!(input >> version) || version != 1)
+	if (!(input >> version) || (version != 1 && version != 2))
 		throw IOError("Unsupported champion format");
 
-	expect(input, "RECTANGLE");
-	const float width = readFloat(input);
-	const float height = readFloat(input);
-	const float roadWidth = readFloat(input);
-	Track track{width, height, roadWidth};
+	Track track = [&]() {
+		if (version == 2) return TrackIO::read(input);
+		expect(input, "RECTANGLE");
+		const float width = readFloat(input);
+		const float height = readFloat(input);
+		const float roadWidth = readFloat(input);
+		try { return Track{width, height, roadWidth}; }
+		catch (const trackError& e) { throw IOError(e.what()); }
+	}();
+	if (!track.issues().empty()) throw IOError("Saved champion track is not playable");
 
 	expect(input, "OBSERVATIONS");
 	int observationVersion;

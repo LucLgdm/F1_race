@@ -18,9 +18,9 @@
 #include <ImGui/backends/imgui_impl_glfw.h>
 #include <ImGui/backends/imgui_impl_opengl3.h>
 
-#include "ImGui/backends/ImGuiFileDialog.h"
 
-#include "ImGuizmo/ImGuizmo.h"
+
+
 #include "ImGui/backends/imgui_spectrum.h"
 #include "ImGui/TrainingUI.hpp"
 
@@ -44,10 +44,13 @@ class ImGuiLayer {
 		[[nodiscard]] std::optional<ChampionLoadRequest> takeLoadRequest();
 
 		void setError(std::string message);
+		void setChampionPath(const std::string& path);
+		bool takeEditorRequest() { return std::exchange(_editorRequest, false); }
 
 
 	private:
 		bool _initialized = false;
+		bool _editorRequest = false;
 		float _openglwidth;
 		float _openglheight;
 		float _viewPortWidth;

@@ -28,6 +28,8 @@
 #include "ML/Selection.hpp"
 #include "Track/ChampionIO.hpp"
 #include "ImGui/ImGuiLayer.hpp"
+#include "Track/TrackEditor.hpp"
+#include "Track/TrackIO.hpp"
 
 const int HEIGHT = 1200;
 const int WIDTH = 1600;
@@ -47,6 +49,11 @@ class Application {
 		GLFWwindow* _window = nullptr;
 		
 		Renderer _renderer;
+		TrackEditor _editor;
+		bool _editing = true;
+		std::optional<Simulation> _manual;
+		std::string _activeTrackFile = "circuits/nouveau_circuit.track";
+		bool _showSensors = true;
 		bool _rendererReady = false;
 
 		Track _track{800.0f, 500.0f, 20.0f};
@@ -64,6 +71,8 @@ class Application {
 		bool _replayChampion = false;
 		std::string _championFile = "circuits/rectangle.f1";
 
+		void resetPopulation(const Network* network = nullptr, bool replay = false);
+		void useEditorTrack(TrackEditorRequest request);
 		void initGLFW();
 		void initOpenGL();
 		void evolvePopulation(std::size_t bestIndex);

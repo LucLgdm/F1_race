@@ -8,11 +8,12 @@
 /* ****************************************** */
 
 #include "Renderer.hpp"
+#include "Track/CarSensors.hpp"
+#include <numbers>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 
 /*******************************
  * Error check
@@ -21,13 +22,10 @@ static void checkShader(GLuint shader) {
 	GLint success = GL_FALSE;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 
-	if (success != GL_TRUE)
-	{
+	if (success != GL_TRUE) {
 		char log[4096]{};
 		glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-		throw std::runtime_error(
-			std::string("Shader compilation failed:\n") + log
-		);
+		throw std::runtime_error(std::string("Shader compilation failed:\n") + log);
 	}
 }
 
@@ -39,17 +37,11 @@ void Renderer::initialize() {
 	// Coordonnées locales en mètres.
 	// Longueur : 4 m sur X ; largeur : 2 m sur Y.
 	// L'avant de la voiture pointe vers +X.
-	constexpr float vertices[] = {
-		// Premier triangle
-		-2.0f, -1.0f,
-		2.0f, -1.0f,
-		2.0f,  1.0f,
+	constexpr float vertices[] = {// Premier triangle
+								  -2.0f, -1.0f, 2.0f, -1.0f, 2.0f, 1.0f,
 
-		// Deuxième triangle
-		-2.0f, -1.0f,
-		2.0f,  1.0f,
-		-2.0f,  1.0f
-	};
+								  // Deuxième triangle
+								  -2.0f, -1.0f, 2.0f, 1.0f, -2.0f, 1.0f};
 
 	glGenVertexArrays(1, &_carVAO);
 	glGenBuffers(1, &_carVBO);
@@ -59,13 +51,11 @@ void Renderer::initialize() {
 	glBindBuffer(GL_ARRAY_BUFFER, _carVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(
-		0,                  // Numéro de l'attribut dans le shader
-		2,                  // Deux composantes : x, y
-		GL_FLOAT,
-		GL_FALSE,
-		2 * sizeof(float),  // Distance entre deux sommets
-		nullptr             // Premier sommet au début du VBO
+	glVertexAttribPointer(0, // Numéro de l'attribut dans le shader
+						  2, // Deux composantes : x, y
+						  GL_FLOAT, GL_FALSE,
+						  2 * sizeof(float), // Distance entre deux sommets
+						  nullptr			 // Premier sommet au début du VBO
 	);
 
 	glEnableVertexAttribArray(0);
@@ -73,6 +63,13 @@ void Renderer::initialize() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	glGenVertexArrays(1, &_trackVAO);
+	glGenBuffers(1, &_trackVBO);
+	glBindVertexArray(_trackVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, _trackVBO);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2), nullptr);
+	glEnableVertexAttribArray(0);
+	glBindVertexArray(0);
 	initializeShader();
 }
 
@@ -95,7 +92,7 @@ void Renderer::initializeShader() {
 
 	const char* vSrc = vCode.c_str();
 	const char* fSrc = fCode.c_str();
-	
+
 	GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vShader, 1, &vSrc, nullptr);
 	glCompileShader(vShader);
@@ -118,9 +115,7 @@ void Renderer::initializeShader() {
 	if (success != GL_TRUE) {
 		char log[4096]{};
 		glGetProgramInfoLog(_shaderProgram, sizeof(log), nullptr, log);
-		throw std::runtime_error(
-			std::string("Shader linking failed:\n") + log
-		);
+		throw std::runtime_error(std::string("Shader linking failed:\n") + log);
 	}
 
 	glDeleteShader(vShader);
@@ -145,9 +140,11 @@ void Renderer::beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBu
 	const float halfWidth = halfHeight * aspect;
 
 	const glm::mat4 projection = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
-	const glm::mat4 view = glm::translate(glm::mat4{1.0f}, glm::vec3{-cameraPosition.x, -cameraPosition.y, 0.0f});
+	const glm::mat4 view =
+		glm::translate(glm::mat4{1.0f}, glm::vec3{-cameraPosition.x, -cameraPosition.y, 0.0f});
 
-	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "projection"), 1, GL_FALSE,
+					   glm::value_ptr(projection));
 	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 }
 
@@ -166,10 +163,10 @@ void Renderer::drawCar(const Car& car) {
 
 	// Wheels position
 	const glm::vec3 wheelPositions[] = {
-		glm::vec3{1.2f, 1.1f, 0.0f},	// Front Left
-		glm::vec3{1.2f, -1.1f, 0.0f},	// Front Right
-		glm::vec3{-1.2f, 1.1f, 0.0f},	// Rear Left
-		glm::vec3{-1.2f, -1.1f, 0.0f}	// Rear Right
+		glm::vec3{1.2f, 1.1f, 0.0f},  // Front Left
+		glm::vec3{1.2f, -1.1f, 0.0f}, // Front Right
+		glm::vec3{-1.2f, 1.1f, 0.0f}, // Rear Left
+		glm::vec3{-1.2f, -1.1f, 0.0f} // Rear Right
 	};
 	glUniform3f(colorLocation, 0.02f, 0.02f, 0.02f); // Dark color for wheels
 
@@ -182,7 +179,7 @@ void Renderer::drawCar(const Car& car) {
 
 		// Scale down the wheels to be smaller than the car body
 		wheelModel = glm::scale(wheelModel, glm::vec3{0.2f, 0.2f, 1.0f});
-		
+
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(wheelModel));
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
@@ -196,21 +193,64 @@ void Renderer::drawCar(const Car& car) {
 }
 
 void Renderer::drawTrack(const Track& track) {
-	const GLint modelLocation = glGetUniformLocation(_shaderProgram, "model");
-	const GLint colorLocation = glGetUniformLocation(_shaderProgram, "objectColor");
-	glUniform3f(colorLocation, 0.3f, 0.3f, 0.3f); // Gray color for track
-	glBindVertexArray(_carVAO);
-
-	for (const RoadSection& section : track.sections()) {
-		glm::mat4 model = glm::translate(glm::mat4{1.0f}, glm::vec3{section.center.x, section.center.y, 0.0f});
-		model = glm::scale(model, glm::vec3{section.size.x / 4.0f, section.size.y / 2.0f, 1.0f});
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+	glUseProgram(_shaderProgram);
+	const glm::mat4 identity{1.0f};
+	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(identity));
+	const GLint color = glGetUniformLocation(_shaderProgram, "objectColor");
+	std::vector<Vec2> vertices;
+	vertices.reserve(track.mesh().size() * 3);
+	for (const auto& t : track.mesh()) {
+		vertices.push_back(t.a);
+		vertices.push_back(t.b);
+		vertices.push_back(t.c);
 	}
+	glBindVertexArray(_trackVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, _trackVBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec2), vertices.data(), GL_STREAM_DRAW);
+	glUniform3f(color, 0.28f, 0.3f, 0.29f);
+	glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
+	vertices.clear();
+	for (const auto& e : track.boundaries()) {
+		vertices.push_back(e.a);
+		vertices.push_back(e.b);
+	}
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec2), vertices.data(), GL_STREAM_DRAW);
+	glUniform3f(color, 0.85f, 0.88f, 0.82f);
+	glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
+	const auto p = track.startPosition();
+	const float a = track.startHeading(), half = track.roadWidth() / 2;
+	const Vec2 line[] = {{p.x - std::sin(a) * half, p.y + std::cos(a) * half},
+						 {p.x + std::sin(a) * half, p.y - std::cos(a) * half}};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(line), line, GL_STREAM_DRAW);
+	glUniform3f(color, 1, 0.7f, 0.3f);
+	glDrawArrays(GL_LINES, 0, 2);
+	glBindVertexArray(0);
+}
+
+void Renderer::drawSensors(const Car& car, const Track& track) {
+	const auto distances = measureWallDistances(car, track, 40);
+	std::vector<Vec2> lines;
+	const Vec2 p = car.position();
+	for (std::size_t i = 0; i < distances.size(); ++i) {
+		const float angle = car.heading() + std::numbers::pi_v<float> / 2 - i * std::numbers::pi_v<float> / 4;
+		lines.push_back(p);
+		lines.push_back({p.x + std::cos(angle) * distances[i], p.y + std::sin(angle) * distances[i]});
+	}
+	const glm::mat4 identity{1};
+	glUseProgram(_shaderProgram);
+	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(identity));
+	glUniform3f(glGetUniformLocation(_shaderProgram, "objectColor"), 0.5f, 1, 0.45f);
+	glBindVertexArray(_trackVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, _trackVBO);
+	glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vec2), lines.data(), GL_STREAM_DRAW);
+	glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(lines.size()));
 	glBindVertexArray(0);
 }
 
 void Renderer::shutdown() {
+	glDeleteBuffers(1, &_trackVBO);
+	glDeleteVertexArrays(1, &_trackVAO);
+	_trackVBO = _trackVAO = 0;
 	glDeleteBuffers(1, &_carVBO);
 	glDeleteVertexArrays(1, &_carVAO);
 

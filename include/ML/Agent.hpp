@@ -47,6 +47,6 @@ class Agent {
 		bool _active = true;
 		float _elapsedTime = 0.0f;
 
-		static constexpr float _maxDuration = 120.0f;
+		float _maxDuration = 120.0f;
 		static constexpr float _maxTimeWithoutProgress = 3.0f;
 };

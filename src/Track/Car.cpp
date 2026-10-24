@@ -9,7 +9,7 @@
 
 #include "Track/Car.hpp"
 
-Car::Car(Vec2 position) noexcept : _position(position) {}
+Car::Car(Vec2 position, float heading) noexcept : _position(position), _heading(heading) {}
 
 Vec2 Car::position() const noexcept {
 	return _position;

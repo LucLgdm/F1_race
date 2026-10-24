@@ -8,10 +8,12 @@
 /* ****************************************** */
 
 #include "Application.hpp"
+#include <sstream>
 
 Application::Application() {}
 
 Application::~Application() {
+	_imGuiLayer.shutdown();
 	if (_rendererReady)
 		_renderer.shutdown();
 	if (_window)
@@ -20,125 +22,204 @@ Application::~Application() {
 }
 
 void Application::init() {
-	initGLFW();					// Create the window
-	initOpenGL();				// Configure OpenGl global
+	initGLFW();	  // Create the window
+	initOpenGL(); // Configure OpenGl global
 
-	_renderer.initialize();		// Initialize the renderer
+	_renderer.initialize(); // Initialize the renderer
 	_rendererReady = true;
 
-	// Initialize the agents, the car are positionned like a real F1 departure
-	constexpr std::size_t populationSize = 20;
-	constexpr float longitudinalOffset = 3.0f;
-	constexpr float lateralOffset = 3.0f;
-	const Vec2 center = _track.startPosition();
-
-	_agents.reserve(populationSize);
-	for (std::size_t i = 0; i < populationSize; ++i) {
-		const float side = (i % 2 == 0) ? 1.0f : -1.0f;
-		constexpr float distanceBeforeLine = 6.0f;
-
-		const Vec2 startPosition{
-			center.x - distanceBeforeLine - static_cast<float>(i) * longitudinalOffset,
-			center.y + side * lateralOffset};
-		_agents.emplace_back(_track, startPosition);
-	}
+	resetPopulation();
 
 	_imGuiLayer.init(_window, WIDTH, HEIGHT);
 }
 
 void Application::run() {
-	// The car update is every 1/120 s
 	constexpr double fixedDt = 1.0 / 120.0;
-	double lastTime = glfwGetTime();
-	double accumulator = 0.0;
-	
+	double lastTime = glfwGetTime(), accumulator = 0.0;
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
-
-		/*******************************
-		 * UI
-		 ******************************/
-		
 		_imGuiLayer.beginFrame();
-		TrainingStats stats;
-
-		stats.generation = _generation;
-		stats.populationSize = _agents.size();
-
-		stats.activeAgents = static_cast<std::size_t>(std::count_if(_agents.begin(), _agents.end(),
-														[](const Agent& agent) {return agent.isActive();}));
-
-		stats.hasChampion = _bestNetwork.has_value();
-		stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0.0f;
-		_imGuiLayer.render(_trainingSettings, stats);
-		if (const auto request = _imGuiLayer.takeLoadRequest()) {
-			try {
-				loadChampion(*request);
-				accumulator = 0.0;
-				_imGuiLayer.setError("");
-			}catch (const IOError& error) {
-				_trainingSettings.paused = true;
-				accumulator = 0.0;
-				_imGuiLayer.setError(error.what());
+		if (_editing) {
+			_editor.render();
+			if (auto request = _editor.takeRequest()) {
+				try {
+					useEditorTrack(std::move(*request));
+				} catch (const std::exception& e) {
+					_editor.setError(e.what());
+				}
+			}
+		} else if (_manual) {
+			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+			ImGui::Begin("Conduite");
+			if (ImGui::Button("Retour a l'editeur"))
+				_editing = true;
+			ImGui::SameLine();
+			if (ImGui::Button("Replacer (R)"))
+				_manual->reset();
+			ImGui::TextUnformatted("Fleches / ZQSD / WASD pour conduire");
+			ImGui::Checkbox("Afficher les capteurs", &_showSensors);
+			ImGui::Text("Vitesse : %.1f km/h", _manual->car().speed() * 3.6f);
+			const auto& location = _manual->location();
+			ImGui::Text("Piece %d | local %.2f m | lateral %.2f m", static_cast<int>(location.segment + 1),
+						location.localDistance, location.lateralDistance);
+			ImGui::Text("Progression %.1f / %.1f m", location.coordinate, _track.length());
+			ImGui::Text("Tours %d | dernier %.3f s", static_cast<int>(_manual->lapCount()),
+						_manual->lastLapTime());
+			ImGui::End();
+		} else {
+			TrainingStats stats;
+			stats.generation = _generation;
+			stats.populationSize = _agents.size();
+			stats.activeAgents = static_cast<std::size_t>(
+				std::count_if(_agents.begin(), _agents.end(), [](const Agent& a) { return a.isActive(); }));
+			stats.hasChampion = _bestNetwork.has_value();
+			stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0;
+			_imGuiLayer.render(_trainingSettings, stats);
+			if (_imGuiLayer.takeEditorRequest()) {
+				_editor.setTrack(_track, _activeTrackFile);
+				_editing = true;
+			}
+			if (const auto request = _imGuiLayer.takeLoadRequest()) {
+				try {
+					loadChampion(*request);
+					_imGuiLayer.setError("");
+				} catch (const std::exception& e) {
+					_trainingSettings.paused = true;
+					_imGuiLayer.setError(e.what());
+				}
+				accumulator = 0;
 			}
 		}
-
-
-		/*******************************
-		 * Simulation
-		 ******************************/
-		const double time = glfwGetTime();
-		const double frameDt = time - lastTime;
-		lastTime = time;
-
-		// Limite le rattrapage apres une pause ou un blocage.
-		if (_trainingSettings.paused) {
-			accumulator = 0.0;
-		}else if (_trainingSettings.accelerated) {
-			accumulator = 0.0;
-			using Clock = std::chrono::steady_clock;
-			const auto deadline = Clock::now() + std::chrono::milliseconds{8};
-			do {
-				stepTraining(static_cast<float>(fixedDt));
-			} while (Clock::now() < deadline);
-		}else{
-			accumulator += std::clamp(frameDt, 0.0, 0.25);
-			while (accumulator >= fixedDt) {
-				stepTraining(static_cast<float>(fixedDt));
-				accumulator -= fixedDt;
-			}
-		}
-
+		const double now = glfwGetTime();
+		const double frameDt = std::clamp(now - lastTime, 0.0, 0.25);
+		lastTime = now;
 		CarControls controls{};
 		handleKey(controls);
-
-		/*******************************
-		 * Render
-		 ******************************/
-		if (_trainingSettings.showSimulation && !_agents.empty()) {	
-			int width = 0;
-			int height = 0;
-			glfwGetFramebufferSize(_window, &width, &height);
-			if (width > 0 && height > 0) {
-				glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				
-				// The camera follows only the first car
-				const auto leader = std::max_element(_agents.begin(), _agents.end(),
-									[](const Agent& left, const Agent& right) {
-										return left.progress() < right.progress();
-									});
-				if (leader != _agents.end()) {
-					_renderer.beginFrame(leader->car().position(), width, height);
-					_renderer.drawTrack(_track);
-					for (const Agent& agent : _agents)
-						_renderer.drawCar(agent.car());
+		if (_manual && !_editing && !ImGui::GetIO().WantCaptureKeyboard && ImGui::IsKeyPressed(ImGuiKey_R))
+			_manual->reset();
+		if (_editing || (!_manual && _trainingSettings.paused))
+			accumulator = 0;
+		else if (!_manual && _trainingSettings.accelerated) {
+			accumulator = 0;
+			const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{8};
+			try {
+				do {
+					stepTraining(static_cast<float>(fixedDt));
+				} while (std::chrono::steady_clock::now() < deadline);
+			} catch (const std::exception& e) {
+				_trainingSettings.paused = true;
+				_imGuiLayer.setError(e.what());
+			}
+		} else {
+			accumulator += frameDt;
+			try {
+				while (accumulator >= fixedDt) {
+					if (_manual)
+						(void)_manual->step(controls, static_cast<float>(fixedDt));
+					else
+						stepTraining(static_cast<float>(fixedDt));
+					accumulator -= fixedDt;
 				}
-			}	
+			} catch (const std::exception& e) {
+				accumulator = 0;
+				_trainingSettings.paused = true;
+				_imGuiLayer.setError(e.what());
+			}
+		}
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(_window, &width, &height);
+		glViewport(0, 0, width, height);
+		glClearColor(0.1f, 0.16f, 0.12f, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		if (!_editing && width > 0 && height > 0) {
+			if (_manual) {
+				_renderer.beginFrame(_manual->car().position(), width, height);
+				_renderer.drawTrack(_track);
+				_renderer.drawCar(_manual->car());
+				if (_showSensors)
+					_renderer.drawSensors(_manual->car(), _track);
+			} else if (_trainingSettings.showSimulation && !_agents.empty()) {
+				const auto leader =
+					std::max_element(_agents.begin(), _agents.end(), [](const Agent& a, const Agent& b) {
+						return a.progress() < b.progress();
+					});
+				_renderer.beginFrame(leader->car().position(), width, height);
+				_renderer.drawTrack(_track);
+				for (const auto& agent : _agents)
+					_renderer.drawCar(agent.car());
+			}
 		}
 		_imGuiLayer.endFrame();
 		glfwSwapBuffers(_window);
 	}
+}
+
+void Application::resetPopulation(const Network* network, bool replay) {
+	_agents.clear();
+	Vec2 start = _track.pointAt(-6.0f);
+	if (!_track.canDrive(start, 2.3f))
+		start = _track.startPosition();
+	const std::size_t count = replay ? 1 : 20;
+	_agents.reserve(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		_agents.emplace_back(_track, start);
+		if (network)
+			_agents.back().setNetwork(*network);
+	}
+	_generationEvaluated = false;
+}
+
+void Application::useEditorTrack(TrackEditorRequest request) {
+	const auto name = std::filesystem::path(request.path).stem().string();
+	if (name.empty() || name == "." || name == ".." ||
+		name.find_first_of("/\\:*?\"<>|") != std::string::npos ||
+		std::filesystem::path(request.path).parent_path() != std::filesystem::path("circuits"))
+		throw IOError("Choisis un nom de circuit simple, sans chemin.");
+	if (!request.track.issues().empty())
+		throw trackError("The track is not playable");
+	_agents.clear();
+	_manual.reset();
+	_track = std::move(request.track);
+	_activeTrackFile = request.path;
+	_bestNetwork.reset();
+	_bestLapTime = std::numeric_limits<float>::infinity();
+	_replayChampion = false;
+	_generation = 1;
+	if (request.manual)
+		_manual.emplace(_track, _track.startPosition());
+	else {
+		// Keep records for another geometry intact. Reuse a matching champion
+		// only when its serialized track is exactly the currently edited one.
+		std::filesystem::path path = request.path;
+		path.replace_extension(".f1");
+		const auto stem = path.stem().string();
+		int suffix = 1;
+		while (std::filesystem::exists(path)) {
+			try {
+				std::ifstream input{path};
+				auto saved = ChampionIO::read(input);
+				std::ostringstream a, b;
+				TrackIO::write(a, _track);
+				TrackIO::write(b, saved.track);
+				if (a.str() == b.str()) {
+					_bestNetwork = std::move(saved.network);
+					_bestLapTime = saved.lapTime;
+					break;
+				}
+			} catch (const std::exception&) { /* preserve unreadable files too */
+			}
+			path = std::filesystem::path(request.path).parent_path() /
+				   (stem + "_" + std::to_string(++suffix) + ".f1");
+		}
+		_championFile = path.string();
+		resetPopulation(_bestNetwork ? &*_bestNetwork : nullptr);
+	}
+	_trainingSettings.paused = true;
+	_trainingSettings.showSimulation = true;
+	_trainingSettings.accelerated = false;
+	_imGuiLayer.setChampionPath(_championFile);
+	_imGuiLayer.setError("");
+	_editing = false;
 }
 
 void Application::evolvePopulation(std::size_t bestIndex) {
@@ -149,24 +230,24 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 
 	for (std::size_t i = 0; i < _agents.size(); ++i) {
 		Agent& agent = _agents[i];
-		if (i == bestIndex){
+		if (i == bestIndex) {
 			agent.setNetwork(parent);
-		}else{
+		} else {
 			++offspringIndex;
 			if (offspringIndex <= 6) {
 				agent.setNetwork(parent);
 				agent.mutateNetwork(0.05f, 0.03f, _generator);
-			}else if (offspringIndex <= 12) {
+			} else if (offspringIndex <= 12) {
 				agent.setNetwork(parent);
 				agent.mutateNetwork(0.1f, 0.1f, _generator);
-			}else if (offspringIndex <= 17) {
+			} else if (offspringIndex <= 17) {
 				agent.setNetwork(parent);
 				agent.mutateNetwork(0.2f, 0.3f, _generator);
-			}else{
+			} else {
 				if (_bestNetwork.has_value()) {
 					agent.setNetwork(parent);
 					agent.mutateNetwork(0.2f, 0.3f, _generator);
-				}else{
+				} else {
 					agent.randomizeNetwork();
 				}
 			}
@@ -177,20 +258,17 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 	_generationEvaluated = false;
 }
 
-
 void Application::stepTraining(float dt) {
 	for (std::size_t i = 0; i < _agents.size(); ++i) {
 		Agent& agent = _agents[i];
 		if (!agent.isActive())
 			continue;
-		
+
 		agent.step(dt);
 
 		if (agent.trackFinished()) {
-			std::cout << "Agent " << i
-						<< " | Tour " << agent.lapCount()
-						<< " | Temps " << agent.lastLapTime()
-						<< " s" << std::endl;
+			std::cout << "Agent " << i << " | Tour " << agent.lapCount() << " | Temps " << agent.lastLapTime()
+					  << " s" << std::endl;
 		}
 	}
 
@@ -198,9 +276,9 @@ void Application::stepTraining(float dt) {
 		return;
 
 	if (!_generationEvaluated && !_agents.empty()) {
-		const bool allFinished = std::all_of(_agents.begin(), _agents.end(),
-										[](const Agent& agent){return !agent.isActive();});
-		
+		const bool allFinished =
+			std::all_of(_agents.begin(), _agents.end(), [](const Agent& agent) { return !agent.isActive(); });
+
 		if (allFinished) {
 			std::vector<AgentScore> scores;
 			scores.reserve(_agents.size());
@@ -213,50 +291,48 @@ void Application::stepTraining(float dt) {
 			const AgentScore& result = scores[bestIndex];
 
 			if (result.completedLap && result.lapTime < _bestLapTime) {
+				std::ostringstream output;
+				ChampionIO::write(output, _track, best.network(), result.lapTime);
+				TrackIO::saveText(_championFile, output.str());
 				_bestLapTime = result.lapTime;
 				_bestNetwork = best.network();
-				std::filesystem::create_directories("circuits");
-				std::ofstream output{_championFile, std::ios::binary | std::ios::trunc};
-				if (!output)
-					throw IOError("Cannot open champion file for writing");
-				ChampionIO::write(output, _track, *_bestNetwork, _bestLapTime);
 				std::cout << "Nouveau record sauvegarde: " << _bestLapTime << " s" << std::endl;
 			}
 
-			std::cout << "Generation " << _generation
-						<< " | Meilleur agent : " << bestIndex;
+			std::cout << "Generation " << _generation << " | Meilleur agent : " << bestIndex;
 			if (result.completedLap) {
 				std::cout << " | Tour termine en " << result.lapTime << " s";
-			}else{
-				std :: cout << " | Progression : " << result.progress << " m";
+			} else {
+				std ::cout << " | Progression : " << result.progress << " m";
 			}
 			if (_bestNetwork.has_value())
 				std::cout << " | Record global : " << _bestLapTime << " s";
 			std::cout << std::endl;
 
-			_generationEvaluated = true; 
+			_generationEvaluated = true;
 			evolvePopulation(bestIndex);
 		}
 	}
 }
-
 
 /*******************************
  * Tools
  ******************************/
 
 void Application::handleKey(CarControls& controls) {
-	// General
-	if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(_window, GLFW_TRUE);
-	// Car controls
-	if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS)	
-		controls.throttle = 1.0f;
-	if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS)	
-		controls.brake = 1.0f;
-	const bool left = glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS;
-	const bool right = glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS;
-
+	if (ImGui::GetIO().WantCaptureKeyboard)
+		return;
+	if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !_editing) {
+		_editor.setTrack(_track, _activeTrackFile);
+		_editing = true;
+	}
+	const auto pressed = [&](int key) { return glfwGetKey(_window, key) == GLFW_PRESS; };
+	if (pressed(GLFW_KEY_W) || pressed(GLFW_KEY_Z) || pressed(GLFW_KEY_UP))
+		controls.throttle = 1;
+	if (pressed(GLFW_KEY_S) || pressed(GLFW_KEY_DOWN))
+		controls.brake = 1;
+	const bool left = pressed(GLFW_KEY_A) || pressed(GLFW_KEY_Q) || pressed(GLFW_KEY_LEFT);
+	const bool right = pressed(GLFW_KEY_D) || pressed(GLFW_KEY_RIGHT);
 	controls.steering = static_cast<float>(right) - static_cast<float>(left);
 }
 
@@ -273,20 +349,12 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 	_bestLapTime = saved.lapTime;
 	_championFile = request.path;
 	_replayChampion = request.mode == ChampionLoadMode::Replay;
-	const std::size_t populationSize = _replayChampion ? 1 : 20;
-	const Vec2 center = _track.startPosition();
-	const Vec2 startPosition{center.x - 6.0f, center.y};
-	_agents.reserve(populationSize);
-
-	for (std::size_t i = 0; i < populationSize; ++i) {
-		_agents.emplace_back(_track, startPosition);
-		_agents.back().setNetwork(*_bestNetwork);
-	}
-	_generationEvaluated = false;
+	_activeTrackFile = std::filesystem::path(request.path).replace_extension(".track").string();
+	resetPopulation(&*_bestNetwork, _replayChampion);
 
 	if (_replayChampion) {
 		_generation = 1;
-	}else{
+	} else {
 		_generation = 0;
 		evolvePopulation(0);
 	}
@@ -294,7 +362,7 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 	_trainingSettings.paused = true;
 	_trainingSettings.showSimulation = true;
 	if (_replayChampion)
-		_trainingSettings.accelerated = false;	
+		_trainingSettings.accelerated = false;
 }
 
 /*******************************
@@ -302,25 +370,29 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
  ******************************/
 
 void Application::initGLFW() {
+	glfwSetErrorCallback([](int code, const char* description) {
+		std::cerr << "GLFW " << code << ": " << description << '\n';
+	});
 	if (!glfwInit())
 		throw glfwError("GLFW initialization failed");
-		
+
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
+
 	_window = glfwCreateWindow(WIDTH, HEIGHT, "F1 race", nullptr, nullptr);
 	if (!_window)
 		throw glfwError("Window creation failed");
-	
+
 	glfwMakeContextCurrent(_window);
+	glfwSwapInterval(1);
 }
 
 void Application::initOpenGL() {
 	// Charger les fonctions OpenGL avec Glad
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		throw openGlError("Failed to initialize GLAD");
-	
+
 	// Configuration OpenGL
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -329,4 +401,3 @@ void Application::initOpenGL() {
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 }
-

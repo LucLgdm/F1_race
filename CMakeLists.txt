@@ -12,7 +12,9 @@ add_executable(F1_race
 	src/Simulation.cpp
 	src/Renderer.cpp
 	src/Track/Car.cpp
+	src/Track/TrackEditor.cpp
 	src/Track/Track.cpp
+	src/Track/TrackIO.cpp
 	src/Track/LapCounter.cpp
 	src/Track/ChampionIO.cpp
 	src/ML/Neuron.cpp
@@ -31,7 +33,6 @@ set_target_properties(F1_race PROPERTIES
 )
 
 target_sources(F1_race PRIVATE
-	src/ImGui/ImGuiLayer.cpp
 	src/ImGui/imgui.cpp
 	src/ImGui/imgui_draw.cpp
 	src/ImGui/imgui_tables.cpp
@@ -66,19 +67,30 @@ if(BUILD_TESTING)
 		tests/test_mutation.cpp
 		tests/test_lap.cpp
 		tests/test_champion_io.cpp
+		tests/test_track_editor.cpp
+		src/Simulation.cpp
+		src/Track/Car.cpp
+		src/Track/TrackEditor.cpp
+		src/ImGui/imgui.cpp
+		src/ImGui/imgui_draw.cpp
+		src/ImGui/imgui_tables.cpp
+		src/ImGui/imgui_widgets.cpp
 		src/ML/Neuron.cpp
 		src/ML/Layer.cpp
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
 		src/Track/Track.cpp
+		src/Track/TrackIO.cpp
 		src/Track/LapCounter.cpp
 		src/Track/ChampionIO.cpp
 	)
 
 	target_include_directories(F1_tests PRIVATE
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
+		"${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui"
 	)
 
+	target_compile_definitions(F1_tests PRIVATE F1_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 	target_compile_features(F1_tests PRIVATE cxx_std_20)
 	target_link_libraries(F1_tests PRIVATE Catch2::Catch2WithMain)
 

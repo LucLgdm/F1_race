@@ -24,6 +24,7 @@ class Simulation {
 		bool step(const CarControls& controls, float dt);
 
 		void reset();
+		[[nodiscard]] const TrackLocation& location() const noexcept { return _location; }
 		[[nodiscard]] const Car& car() const noexcept;
 		[[nodiscard]] CarObservation observe() const;
 		[[nodiscard]] std::size_t lapCount() const noexcept;
@@ -35,6 +36,7 @@ class Simulation {
 		const Track& _track;
 		Vec2 _startPosition;
 		Car _car;
+		TrackLocation _location;
 
 		LapCounter _lapCounter;
 
