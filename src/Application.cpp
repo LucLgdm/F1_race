@@ -223,8 +223,10 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 }
 
 void Application::evolvePopulation(std::size_t bestIndex) {
+	const bool refining = _bestNetwork.has_value();
+	
 	// independent copies before the modification
-	const Network parent = _bestNetwork.has_value() ? *_bestNetwork : _agents.at(bestIndex).network();
+	const Network parent = refining ? *_bestNetwork : _agents.at(bestIndex).network();
 
 	std::size_t offspringIndex = 0;
 
@@ -232,7 +234,12 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 		Agent& agent = _agents[i];
 		if (i == bestIndex) {
 			agent.setNetwork(parent);
-		} else {
+		}else if (refining) {
+			agent.setNetwork(parent);
+			const float strength = (offspringIndex % 2 == 0) ? 0.005f : 0.015f;
+			agent.mutateNetwork(0.02f, strength, _generator);
+			++offspringIndex;
+		}else{
 			++offspringIndex;
 			if (offspringIndex <= 6) {
 				agent.setNetwork(parent);
