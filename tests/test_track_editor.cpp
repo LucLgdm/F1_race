@@ -13,60 +13,60 @@
 #include <sstream>
 
 namespace {
-constexpr float pi = std::numbers::pi_v<float>;
-Track roundedLoop() {
-	std::vector<TrackSegment> pieces;
-	TrackSegment s{{0, 0}, 0, 80};
-	for (int i = 0; i < 4; ++i) {
-		s.rounded = false;
-		s.length = 80;
-		pieces.push_back(s);
-		s.start = Track::segmentPoint(s, 80);
-		s.rounded = true;
-		s.radius = 20;
-		s.turn = -1;
-		pieces.push_back(s);
-		s.start = Track::segmentPoint(s, Track::segmentLength(s));
-		s.heading -= pi / 2;
+	constexpr float pi = std::numbers::pi_v<float>;
+	Track roundedLoop() {
+		std::vector<TrackSegment> pieces;
+		TrackSegment s{{0, 0}, 0, 80};
+		for (int i = 0; i < 4; ++i) {
+			s.rounded = false;
+			s.length = 80;
+			pieces.push_back(s);
+			s.start = Track::segmentPoint(s, 80);
+			s.rounded = true;
+			s.radius = 20;
+			s.turn = -1;
+			pieces.push_back(s);
+			s.start = Track::segmentPoint(s, Track::segmentLength(s));
+			s.heading -= pi / 2;
+		}
+		return Track{pieces, 12, 20};
 	}
-	return Track{pieces, 12, 20};
-}
-struct EditorUI {
-	EditorUI() {
-		ImGui::CreateContext();
-		auto& io = ImGui::GetIO();
-		io.IniFilename = nullptr;
-		io.DisplaySize = ImVec2(1600, 1200);
-		io.DeltaTime = 1.0f / 60;
-		unsigned char* pixels;
-		int width, height;
-		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-	}
-	~EditorUI() { ImGui::DestroyContext(); }
-	void frame(TrackEditor& editor) {
-		ImGui::NewFrame();
-		editor.render();
-		ImGui::Render();
-	}
-	ImGuiWindow* window(const char* part) {
-		for (auto* w : ImGui::GetCurrentContext()->Windows)
-			if (std::string(w->Name).find(part) != std::string::npos)
-				return w;
-		return nullptr;
-	}
-	void activate(TrackEditor& editor, const char* label) {
-		auto* properties = window("/Proprietes_");
-		REQUIRE(properties != nullptr);
-		ImGui::ActivateItemByID(properties->GetID(label));
-		frame(editor);
-	}
-	void mouse(TrackEditor& editor, ImVec2 position, bool down) {
-		auto& io = ImGui::GetIO();
-		io.AddMousePosEvent(position.x, position.y);
-		io.AddMouseButtonEvent(ImGuiMouseButton_Left, down);
-		frame(editor);
-	}
-};
+	struct EditorUI {
+		EditorUI() {
+			ImGui::CreateContext();
+			auto& io = ImGui::GetIO();
+			io.IniFilename = nullptr;
+			io.DisplaySize = ImVec2(1600, 1200);
+			io.DeltaTime = 1.0f / 60;
+			unsigned char* pixels;
+			int width, height;
+			io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+		}
+		~EditorUI() { ImGui::DestroyContext(); }
+		void frame(TrackEditor& editor) {
+			ImGui::NewFrame();
+			editor.render();
+			ImGui::Render();
+		}
+		ImGuiWindow* window(const char* part) {
+			for (auto* w : ImGui::GetCurrentContext()->Windows)
+				if (std::string(w->Name).find(part) != std::string::npos)
+					return w;
+			return nullptr;
+		}
+		void activate(TrackEditor& editor, const char* label) {
+			auto* properties = window("/Proprietes_");
+			REQUIRE(properties != nullptr);
+			ImGui::ActivateItemByID(properties->GetID(label));
+			frame(editor);
+		}
+		void mouse(TrackEditor& editor, ImVec2 position, bool down) {
+			auto& io = ImGui::GetIO();
+			io.AddMousePosEvent(position.x, position.y);
+			io.AddMouseButtonEvent(ImGuiMouseButton_Left, down);
+			frame(editor);
+		}
+	};
 } // namespace
 
 TEST_CASE("Un rectangle oriente utilise ses limites locales pour les rayons et collisions",
