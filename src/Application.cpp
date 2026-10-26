@@ -8,6 +8,8 @@
 /* ****************************************** */
 
 #include "Application.hpp"
+#include "CameraView.hpp"
+#include <cmath>
 #include <sstream>
 
 Application::Application() {}
@@ -39,6 +41,7 @@ void Application::run() {
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
 		_imGuiLayer.beginFrame();
+		float cameraPanelRight = 0.0f;
 		if (_editing) {
 			_editor.render();
 			if (auto request = _editor.takeRequest()) {
@@ -58,6 +61,7 @@ void Application::run() {
 				_manual->reset();
 			ImGui::TextUnformatted("Fleches / ZQSD / WASD pour conduire");
 			ImGui::Checkbox("Afficher les capteurs", &_showSensors);
+			ImGui::Checkbox("Vue de tout le circuit", &_trainingSettings.trackOverview);
 			ImGui::Text("Vitesse : %.1f km/h", _manual->car().speed() * 3.6f);
 			const auto& location = _manual->location();
 			ImGui::Text("Piece %d | local %.2f m | lateral %.2f m", static_cast<int>(location.segment + 1),
@@ -65,6 +69,7 @@ void Application::run() {
 			ImGui::Text("Progression %.1f / %.1f m", location.coordinate, _track.length());
 			ImGui::Text("Tours %d | dernier %.3f s", static_cast<int>(_manual->lapCount()),
 						_manual->lastLapTime());
+			cameraPanelRight = ImGui::GetWindowPos().x + ImGui::GetWindowSize().x;
 			ImGui::End();
 		} else {
 			TrainingStats stats;
@@ -75,6 +80,7 @@ void Application::run() {
 			stats.hasChampion = _bestNetwork.has_value();
 			stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0;
 			_imGuiLayer.render(_trainingSettings, stats);
+			cameraPanelRight = _imGuiLayer.panelRight();
 			if (_imGuiLayer.takeEditorRequest()) {
 				_editor.setTrack(_track, _activeTrackFile);
 				_editing = true;
@@ -132,8 +138,21 @@ void Application::run() {
 		glClearColor(0.1f, 0.16f, 0.12f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		if (!_editing && width > 0 && height > 0) {
+			const auto beginCameraFrame = [&](Vec2 followedPosition) {
+				CameraView view{followedPosition, 30.0f};
+				int viewportLeft = 0;
+				if (_trainingSettings.trackOverview) {
+					// ImGui uses logical pixels, OpenGL uses framebuffer pixels (HiDPI).
+					const float displayWidth = ImGui::GetIO().DisplaySize.x;
+					const float scale = displayWidth > 0 ? width / displayWidth : 1.0f;
+					viewportLeft = std::clamp(
+						static_cast<int>(std::ceil(cameraPanelRight * scale)), 0, width - 1);
+					view = fitTrackView(_track, width - viewportLeft, height);
+				}
+				_renderer.beginFrame(view.position, width, height, view.halfHeight, viewportLeft);
+			};
 			if (_manual) {
-				_renderer.beginFrame(_manual->car().position(), width, height);
+				beginCameraFrame(_manual->car().position());
 				_renderer.drawTrack(_track);
 				_renderer.drawCar(_manual->car());
 				if (_showSensors)
@@ -143,7 +162,7 @@ void Application::run() {
 					std::max_element(_agents.begin(), _agents.end(), [](const Agent& a, const Agent& b) {
 						return a.progress() < b.progress();
 					});
-				_renderer.beginFrame(leader->car().position(), width, height);
+				beginCameraFrame(leader->car().position());
 				_renderer.drawTrack(_track);
 				for (const auto& agent : _agents)
 					_renderer.drawCar(agent.car());
@@ -155,14 +174,44 @@ void Application::run() {
 }
 
 void Application::resetPopulation(const Network* network, bool replay) {
-	_agents.clear();
-	Vec2 start = _track.pointAt(-6.0f);
-	if (!_track.canDrive(start, 2.3f))
-		start = _track.startPosition();
+	constexpr float distanceBeforeLine = 6.0f;
+	constexpr float stagger = 6.0f;
+	constexpr float carRadius = 2.3f;
+
 	const std::size_t count = replay ? 1 : 20;
+
+	// Jusqu'à 3 m de chaque côté, en conservant une marge au bord.
+	const float lateralOffset = replay ? 0.0f : std::min(
+		3.0f, _track.roadWidth() / 2.0f - carRadius - 0.25f);
+
+	if (!replay && lateralOffset <= 0.0f)
+		throw trackError("Track is too narrow for two starting columns");
+
+	_agents.clear();
 	_agents.reserve(count);
+
 	for (std::size_t i = 0; i < count; ++i) {
+		const float coordinate = -distanceBeforeLine - static_cast<float>(i) * stagger;
+
+		const Vec2 center = _track.pointAt(coordinate);
+		const float heading = _track.headingAt(coordinate);
+
+		// Indices pairs à gauche, indices impairs à droite.
+		const float side = (i % 2 == 0) ? 1.0f : -1.0f;
+		const float offset = side * lateralOffset;
+
+		// La normale gauche à la piste vaut (-sin(angle), cos(angle)).
+		Vec2 start{center.x - std::sin(heading) * offset, center.y + std::cos(heading) * offset};
+
+		if (!_track.canDrive(start, carRadius)) {
+			if (replay)
+				start = _track.startPosition();
+			else
+				throw trackError("Starting grid extends outside the track");
+		}
+
 		_agents.emplace_back(_track, start);
+
 		if (network)
 			_agents.back().setNetwork(*network);
 	}

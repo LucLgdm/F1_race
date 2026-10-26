@@ -26,7 +26,8 @@ class Renderer {
 		void initializeShader();
 		void shutdown();
 
-		void beginFrame(Vec2 cameraPosition,int frameBufferWidth, int frameBufferHeight);
+		void beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBufferHeight,
+			float halfHeight = 30.0f, int viewportLeft = 0);
 		void drawCar(const Car& car);
 		void drawTrack(const Track& track);
 		void drawSensors(const Car& car, const Track& track);

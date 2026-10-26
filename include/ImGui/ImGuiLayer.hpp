@@ -43,6 +43,7 @@ class ImGuiLayer {
 
 		[[nodiscard]] std::optional<ChampionLoadRequest> takeLoadRequest();
 
+		[[nodiscard]] float panelRight() const noexcept { return _panelRight; }
 		void setError(std::string message);
 		void setChampionPath(const std::string& path);
 		bool takeEditorRequest() { return std::exchange(_editorRequest, false); }
@@ -51,6 +52,7 @@ class ImGuiLayer {
 	private:
 		bool _initialized = false;
 		bool _editorRequest = false;
+		float _panelRight = 350.0f;
 		float _openglwidth;
 		float _openglheight;
 		float _viewPortWidth;

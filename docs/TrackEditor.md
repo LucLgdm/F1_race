@@ -27,6 +27,13 @@ En conduite, utiliser les flèches, ZQSD ou WASD ; **R** replace la voiture. Les
 affichés, ainsi que le numéro de pièce, la distance locale et le décalage latéral. **Échap** revient à
 l'éditeur ; la fermeture de la fenêtre quitte le programme. L'entraînement démarre en pause.
 
+La case **Vue de tout le circuit**, disponible dans les panneaux de conduite et d'entraînement,
+bascule entre le suivi d'une voiture et le cadrage automatique de l'ensemble du tracé. En conduite,
+le suivi cible ta voiture ; en entraînement, il cible la voiture ayant la meilleure progression.
+La vue globale suit les dimensions réelles de la piste et le format de la fenêtre, avec une marge.
+Le panneau ImGui occupe une zone réservée à gauche pour éviter de masquer une partie du circuit.
+La caméra de l'éditeur reste indépendante de ce choix.
+
 ## Fichiers et champions
 
 Lancer le programme depuis la racine du dépôt, comme auparavant : `./build/F1_race.exe` sous MSYS2.
