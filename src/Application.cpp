@@ -174,14 +174,44 @@ void Application::run() {
 }
 
 void Application::resetPopulation(const Network* network, bool replay) {
-	_agents.clear();
-	Vec2 start = _track.pointAt(-6.0f);
-	if (!_track.canDrive(start, 2.3f))
-		start = _track.startPosition();
+	constexpr float distanceBeforeLine = 6.0f;
+	constexpr float stagger = 6.0f;
+	constexpr float carRadius = 2.3f;
+
 	const std::size_t count = replay ? 1 : 20;
+
+	// Jusqu'à 3 m de chaque côté, en conservant une marge au bord.
+	const float lateralOffset = replay ? 0.0f : std::min(
+		3.0f, _track.roadWidth() / 2.0f - carRadius - 0.25f);
+
+	if (!replay && lateralOffset <= 0.0f)
+		throw trackError("Track is too narrow for two starting columns");
+
+	_agents.clear();
 	_agents.reserve(count);
+
 	for (std::size_t i = 0; i < count; ++i) {
+		const float coordinate = -distanceBeforeLine - static_cast<float>(i) * stagger;
+
+		const Vec2 center = _track.pointAt(coordinate);
+		const float heading = _track.headingAt(coordinate);
+
+		// Indices pairs à gauche, indices impairs à droite.
+		const float side = (i % 2 == 0) ? 1.0f : -1.0f;
+		const float offset = side * lateralOffset;
+
+		// La normale gauche à la piste vaut (-sin(angle), cos(angle)).
+		Vec2 start{center.x - std::sin(heading) * offset, center.y + std::cos(heading) * offset};
+
+		if (!_track.canDrive(start, carRadius)) {
+			if (replay)
+				start = _track.startPosition();
+			else
+				throw trackError("Starting grid extends outside the track");
+		}
+
 		_agents.emplace_back(_track, start);
+
 		if (network)
 			_agents.back().setNetwork(*network);
 	}
