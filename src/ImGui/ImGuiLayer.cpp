@@ -97,6 +97,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	if (ImGui::Button("Editeur de circuit")) _editorRequest = true;
 	ImGui::Checkbox("Pause", &settings.paused);
 	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
+	ImGui::Checkbox("Vue de tout le circuit", &settings.trackOverview);
 	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
 
 	ImGui::Separator();
@@ -122,6 +123,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	if (!_errorMessage.empty())
 		ImGui::TextWrapped("%s", _errorMessage.c_str());
 
+	_panelRight = ImGui::GetWindowPos().x + ImGui::GetWindowSize().x;
 	ImGui::End();
 }
 

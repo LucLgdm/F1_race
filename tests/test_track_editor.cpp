@@ -1,4 +1,5 @@
 #include "Track/TrackIO.hpp"
+#include "CameraView.hpp"
 #include "Track/TrackEditor.hpp"
 #include "Track/ChampionIO.hpp"
 #include "Simulation.hpp"
@@ -305,4 +306,37 @@ TEST_CASE("Une seconde sauvegarde remplace un fichier puis se recharge", "[edito
 	TrackIO::save(path, roundedLoop());
 	REQUIRE(TrackIO::load(path).length() == roundedLoop().length());
 	std::filesystem::remove(path);
+}
+
+TEST_CASE("La vue globale cadre tous les bords selon le format de la fenetre", "[camera]") {
+	const auto track = roundedLoop();
+	for (const auto size : {Vec2{1600, 900}, Vec2{900, 1600}, Vec2{500, 1200}}) {
+		const auto view = fitTrackView(track, static_cast<int>(size.x), static_cast<int>(size.y));
+		const float halfWidth = view.halfHeight * size.x / size.y;
+		for (const auto& edge : track.boundaries())
+			for (const Vec2 p : {edge.a, edge.b}) {
+				REQUIRE(std::abs(p.x - view.position.x) < halfWidth);
+				REQUIRE(std::abs(p.y - view.position.y) < view.halfHeight);
+			}
+	}
+}
+
+TEST_CASE("La vue globale suit le centre reel d un circuit deplace et oriente", "[camera]") {
+	const Track track{{TrackSegment{{1000, -300}, pi / 4, 150}}, 12};
+	const auto view = fitTrackView(track, 1600, 900);
+	const auto expected = Track::segmentPoint(track.segments()[0], 75);
+	REQUIRE(view.position.x == Catch::Approx(expected.x).margin(0.001));
+	REQUIRE(view.position.y == Catch::Approx(expected.y).margin(0.001));
+	REQUIRE(view.halfHeight > 0);
+}
+
+TEST_CASE("Le cadrage global tient compte de la place reservee au panneau", "[camera]") {
+	const Track track{800, 500, 20};
+	const auto wholeWindow = fitTrackView(track, 1600, 1200);
+	const auto besidePanel = fitTrackView(track, 1250, 1200);
+	REQUIRE(besidePanel.halfHeight > wholeWindow.halfHeight);
+	const auto empty = fitTrackView(Track{{}, 12}, 1250, 1200);
+	REQUIRE(empty.halfHeight == 30);
+	REQUIRE_THROWS_AS(fitTrackView(track, 0, 1200), trackError);
+	REQUIRE_THROWS_AS(fitTrackView(track, 1600, 0), trackError);
 }

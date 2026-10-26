@@ -16,6 +16,7 @@ struct TrainingSettings {
 	bool paused = true;
 	bool showSimulation = true;
 	bool accelerated = false;
+	bool trackOverview = false;
 };
 
 struct TrainingStats {

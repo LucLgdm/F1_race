@@ -126,17 +126,20 @@ void Renderer::initializeShader() {
  * Drawing
  ******************************/
 
-void Renderer::beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBufferHeight) {
+void Renderer::beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBufferHeight,
+						  float halfHeight, int viewportLeft) {
 	if (frameBufferWidth <= 0 || frameBufferHeight <= 0)
 		return;
 
-	glViewport(0, 0, frameBufferWidth, frameBufferHeight);
+	if (!std::isfinite(halfHeight) || halfHeight <= 0.0f)
+		throw openGlError("Camera half-height must be finite and positive");
+	viewportLeft = std::clamp(viewportLeft, 0, frameBufferWidth - 1);
+	const int viewportWidth = frameBufferWidth - viewportLeft;
+	glViewport(viewportLeft, 0, viewportWidth, frameBufferHeight);
 	glUseProgram(_shaderProgram);
-	// Zone visible : 40 mètres de hauteur.
-	// La largeur dépend du format de la fenêtre.
-	const float aspect = static_cast<float>(frameBufferWidth) / static_cast<float>(frameBufferHeight);
+	// halfHeight controls the orthographic zoom; position controls the view centre.
+	const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(frameBufferHeight);
 
-	constexpr float halfHeight = 30.0f;
 	const float halfWidth = halfHeight * aspect;
 
 	const glm::mat4 projection = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
