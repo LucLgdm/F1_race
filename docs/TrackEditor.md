@@ -81,6 +81,15 @@ utilisent des raccords en onglet. Les courbes sont discrétisées pour le rendu 
 capteurs utilisent exactement les mêmes bords. Les calculs de longueur et de projection sur les arcs
 utilisent leur géométrie analytique.
 
+Les recherches dans le ruban utilisent deux BVH en 2D : un pour les triangles et un pour les
+bords. Ils sont construits avec la géométrie, puis consultés en lecture seule, sans allocation
+pendant une recherche. `contains()`, `canDrive()`, `canTravel()` et `raycast()` éliminent ainsi
+les groupes éloignés avant leurs tests précis. Les boîtes englobantes incluent les tolérances
+numériques des anciens tests, notamment aux raccords et aux extrémités des bords. Les tableaux
+de géométrie conservent leur ordre ; les arbres ne stockent que des indices et se copient avec
+le circuit. Ils sont reconstruits au chargement et après une modification du dessin, sans
+changer les formats `.track` et `.f1`.
+
 `TrackLocation` regroupe la pièce, la distance sur cette pièce, la distance bouclée depuis le départ,
 la tangente et le décalage latéral. La simulation limite la projection à un voisinage de la coordonnée
 précédente pour éviter un saut vers une autre portion proche du circuit. Cette coordonnée alimente
@@ -114,3 +123,36 @@ Les tests couvrent les segments orientés, les deux sens de virage, les raccords
 locale, les collisions balayées, la compatibilité des champions et les sauvegardes. Les tests ImGui
 créent un contexte sans fenêtre et exercent les commandes et les manipulations du plan ; ils ne
 requièrent pas de GPU ou de serveur graphique pour être exécutés en CI.
+
+### Mesurer les recherches
+
+Un benchmark facultatif exécute cinq essais sans affichage et donne leur durée médiane.
+Chaque essai couvre 5 120 positions du tracé avec cinq rayons, un déplacement balayé et une
+projection locale par position. Il mesure les recherches géométriques, pas une génération
+complète d'entraînement. Le temps dépend du tracé, du compilateur et du processeur.
+
+```sh
+cmake -S . -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_COVERAGE=OFF -DBUILD_BENCHMARKS=ON
+cmake --build build-release --target F1_track_benchmark
+./build-release/F1_track_benchmark circuits/Le_Mans.track
+```
+
+Sous MSYS2, l'exécutable porte le suffixe `.exe`. La somme `checksum` permet de vérifier
+la stabilité des résultats lors d'une comparaison sur le même circuit. Les tests automatiques
+comparent également les requêtes indexées aux anciennes recherches exhaustives : circuits
+orientés et arrondis, fichier Le Mans, bords, raccords, tangences, coordonnées éloignées et
+copies ou remplacements de circuits.
+
+Pour mesurer une génération complète de calcul, le second exécutable charge un champion,
+crée 20 agents sur deux colonnes décalées et applique des mutations avec une graine fixe.
+Il simule trois générations indépendantes à 120 Hz, sans interface ni sauvegarde, puis donne
+leur durée médiane et les états finaux des agents. Le réseau parent est identique à chaque
+essai : ce benchmark mesure le calcul d'une génération, pas l'évolution de l'apprentissage.
+
+```sh
+cmake --build build-release --target F1_training_benchmark
+./build-release/F1_training_benchmark circuits/Le_Mans.f1
+```
+
+Ce benchmark nécessite un circuit assez large et des positions de départ praticables. Il
+s'arrête avec le code 2 si une génération dépasse un million de pas de simulation.

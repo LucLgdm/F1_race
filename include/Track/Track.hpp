@@ -5,6 +5,7 @@
 #include <vector>
 #include "Vec2.hpp"
 #include "Exception.hpp"
+#include "Track/Bvh2D.hpp"
 
 // Metres, radians, positive angles turn left. A rounded segment is a
 // quarter annulus, tangent to its local +X axis at its start.
@@ -67,6 +68,9 @@ class Track {
 	std::vector<float> _offsets;
 	std::vector<TrackTriangle> _mesh;
 	std::vector<TrackEdge> _boundaries;
+	Bvh2D _meshBvh;
+	Bvh2D _boundaryBvh;
+	void rebuildSpatialIndex();
 	void rebuild();
 	[[nodiscard]] TrackLocation atRawDistance(float distance) const noexcept;
 	[[nodiscard]] bool contains(Vec2 point) const noexcept;
