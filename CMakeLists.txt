@@ -62,6 +62,7 @@ if(BUILD_TESTING)
 		tests/test_loss.cpp
 		tests/test_neuron.cpp
 		tests/test_track.cpp
+		tests/test_aabb.cpp
 		tests/test_progress.cpp
 		tests/test_selection.cpp
 		tests/test_mutation.cpp
