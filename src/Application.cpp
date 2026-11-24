@@ -148,7 +148,7 @@ void Application::run() {
 					const float scale = displayWidth > 0 ? width / displayWidth : 1.0f;
 					viewportLeft = std::clamp(
 						static_cast<int>(std::ceil(cameraPanelRight * scale)), 0, width - 1);
-					view = fitTrackView(_track, width - viewportLeft, height);
+					view = fitTrackView(_track, width - viewportLeft, height, TrackScenery::viewPadding);
 				}
 				_renderer.beginFrame(view.position, width, height, view.halfHeight, viewportLeft);
 			};
@@ -230,6 +230,7 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 	_agents.clear();
 	_manual.reset();
 	_track = std::move(request.track);
+	_renderer.invalidateTrack();
 	_activeTrackFile = request.path;
 	_bestNetwork.reset();
 	_bestLapTime = std::numeric_limits<float>::infinity();
@@ -397,6 +398,7 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 	_followedAgent.reset();
 	_agents.clear();
 	_track = std::move(saved.track);
+	_renderer.invalidateTrack();
 	_bestNetwork = std::move(saved.network);
 	_bestLapTime = saved.lapTime;
 	_championFile = request.path;

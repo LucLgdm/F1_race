@@ -38,6 +38,17 @@ La vue globale suit les dimensions réelles de la piste et le format de la fenê
 Le panneau ImGui occupe une zone réservée à gauche pour éviter de masquer une partie du circuit.
 La caméra de l'éditeur reste indépendante de ce choix.
 
+En conduite et en entraînement affiché, des bandes alternées noires et blanches bordent la piste.
+Des arbres de tailles et de teintes variées sont répartis autour du tracé, en restant éloignés
+de toutes les portions de chaussée. Leur disposition dépend du dessin : elle reste stable entre
+les générations, au rechargement et lors d'un déplacement de la ligne de départ. Ces éléments
+sont décoratifs et ne changent ni les collisions, ni les capteurs, ni les scores des agents.
+La vue globale réserve une marge pour inclure les arbres.
+
+Le rendu prépare le circuit et son décor une fois, puis conserve les sommets colorés dans un
+VBO OpenGL statique. Un changement de circuit invalide ce cache ; les générations et les mouvements
+de caméra le réutilisent. Le mode sans affichage n'effectue aucun de ces dessins.
+
 ## Fichiers et champions
 
 Lancer le programme depuis la racine du dépôt, comme auparavant : `./build/F1_race.exe` sous MSYS2.

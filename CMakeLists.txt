@@ -11,6 +11,7 @@ add_executable(F1_race
 	src/Application.cpp
 	src/Simulation.cpp
 	src/Renderer.cpp
+	src/Track/TrackScenery.cpp
 	src/Track/Car.cpp
 	src/Track/TrackEditor.cpp
 	src/Track/Track.cpp
@@ -73,6 +74,7 @@ if(BUILD_TESTING)
 		tests/test_champion_io.cpp
 		tests/test_track_editor.cpp
 		tests/test_training_camera.cpp
+		tests/test_track_scenery.cpp
 		src/Simulation.cpp
 		src/Track/Car.cpp
 		src/Track/TrackEditor.cpp
@@ -87,6 +89,7 @@ if(BUILD_TESTING)
 		src/ML/Agent.cpp
 		src/Track/Track.cpp
 		src/Track/Bvh2D.cpp
+		src/Track/TrackScenery.cpp
 		src/Track/TrackIO.cpp
 		src/Track/LapCounter.cpp
 		src/Track/ChampionIO.cpp

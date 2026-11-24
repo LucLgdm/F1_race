@@ -19,6 +19,7 @@
 #include "Exception.hpp"
 #include "Track/Track.hpp"
 #include "Track/Car.hpp"
+#include "Track/TrackScenery.hpp"
 
 class Renderer {
 	public:
@@ -30,10 +31,17 @@ class Renderer {
 			float halfHeight = 30.0f, int viewportLeft = 0);
 		void drawCar(const Car& car);
 		void drawTrack(const Track& track);
+		// Call after replacing/editing the same Track object.
+		void invalidateTrack() noexcept { _sceneReady = false; }
 		void drawSensors(const Car& car, const Track& track);
 
 	private:
 		GLuint _trackVAO = 0, _trackVBO = 0;
+		GLuint _sceneVAO = 0, _sceneVBO = 0;
+		GLsizei _sceneTriangles = 0, _sceneLines = 0;
+		bool _sceneReady = false;
+		const Track* _sceneTrack = nullptr;
+		void cacheTrack(const Track& track);
 		GLuint _carVAO = 0;
 		GLuint _carVBO = 0;
 		GLuint _shaderProgram = 0;
