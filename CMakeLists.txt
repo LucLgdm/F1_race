@@ -11,9 +11,11 @@ add_executable(F1_race
 	src/Application.cpp
 	src/Simulation.cpp
 	src/Renderer.cpp
+	src/Track/TrackScenery.cpp
 	src/Track/Car.cpp
 	src/Track/TrackEditor.cpp
 	src/Track/Track.cpp
+	src/Track/Bvh2D.cpp
 	src/Track/TrackIO.cpp
 	src/Track/LapCounter.cpp
 	src/Track/ChampionIO.cpp
@@ -62,12 +64,17 @@ if(BUILD_TESTING)
 		tests/test_loss.cpp
 		tests/test_neuron.cpp
 		tests/test_track.cpp
+		tests/test_aabb.cpp
+		tests/test_bvh.cpp
+		tests/test_track_bvh.cpp
 		tests/test_progress.cpp
 		tests/test_selection.cpp
 		tests/test_mutation.cpp
 		tests/test_lap.cpp
 		tests/test_champion_io.cpp
 		tests/test_track_editor.cpp
+		tests/test_training_camera.cpp
+		tests/test_track_scenery.cpp
 		src/Simulation.cpp
 		src/Track/Car.cpp
 		src/Track/TrackEditor.cpp
@@ -79,7 +86,10 @@ if(BUILD_TESTING)
 		src/ML/Layer.cpp
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
+		src/ML/Agent.cpp
 		src/Track/Track.cpp
+		src/Track/Bvh2D.cpp
+		src/Track/TrackScenery.cpp
 		src/Track/TrackIO.cpp
 		src/Track/LapCounter.cpp
 		src/Track/ChampionIO.cpp
@@ -114,4 +124,37 @@ if(BUILD_TESTING)
 			)
 		endforeach()
 	endif()
+endif()
+
+# Mesure des recherches geometriques sans fenetre ni rendu.
+option(BUILD_BENCHMARKS "Build geometry and training benchmarks" OFF)
+if(BUILD_BENCHMARKS)
+	add_executable(F1_track_benchmark
+		benchmarks/track_queries.cpp
+		src/Track/Track.cpp
+		src/Track/Bvh2D.cpp
+		src/Track/TrackIO.cpp
+	)
+	target_include_directories(F1_track_benchmark PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+	target_compile_features(F1_track_benchmark PRIVATE cxx_std_20)
+	set_target_properties(F1_track_benchmark PROPERTIES CXX_EXTENSIONS OFF)
+
+	add_executable(F1_training_benchmark
+		benchmarks/training_generation.cpp
+		src/Track/Track.cpp
+		src/Track/Bvh2D.cpp
+		src/Track/TrackIO.cpp
+		src/Track/ChampionIO.cpp
+		src/Track/Car.cpp
+		src/Track/LapCounter.cpp
+		src/Simulation.cpp
+		src/ML/Agent.cpp
+		src/ML/Network.cpp
+		src/ML/Layer.cpp
+		src/ML/Neuron.cpp
+		src/ML/ProgressTracker.cpp
+	)
+	target_include_directories(F1_training_benchmark PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+	target_compile_features(F1_training_benchmark PRIVATE cxx_std_20)
+	set_target_properties(F1_training_benchmark PROPERTIES CXX_EXTENSIONS OFF)
 endif()

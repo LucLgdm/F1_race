@@ -3,6 +3,7 @@
 #include "Track/Track.hpp"
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 // The orthographic camera needs a centre and a visible half-height.
 struct CameraView {
@@ -10,9 +11,12 @@ struct CameraView {
 	float halfHeight = 30.0f;
 };
 
-[[nodiscard]] inline CameraView fitTrackView(const Track& track, int viewportWidth, int viewportHeight) {
+[[nodiscard]] inline CameraView fitTrackView(const Track& track, int viewportWidth, int viewportHeight,
+	float padding = 5.0f) {
 	if (viewportWidth <= 0 || viewportHeight <= 0)
 		throw trackError("Camera viewport dimensions must be positive");
+	if (!std::isfinite(padding) || padding < 0)
+		throw trackError("Camera padding must be finite and non-negative");
 	if (track.boundaries().empty())
 		return {};
 
@@ -27,7 +31,6 @@ struct CameraView {
 		}
 	}
 
-	constexpr float padding = 5.0f;
 	const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
 	const float halfWidth = (maximum.x - minimum.x) / 2.0f + padding;
 	const float halfHeight = (maximum.y - minimum.y) / 2.0f + padding;

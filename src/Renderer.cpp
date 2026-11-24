@@ -10,6 +10,7 @@
 #include "Renderer.hpp"
 #include "Track/CarSensors.hpp"
 #include <numbers>
+#include <cstddef>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -70,6 +71,20 @@ void Renderer::initialize() {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2), nullptr);
 	glEnableVertexAttribArray(0);
 	glBindVertexArray(0);
+
+	glGenVertexArrays(1, &_sceneVAO);
+	glGenBuffers(1, &_sceneVBO);
+	glBindVertexArray(_sceneVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, _sceneVBO);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SceneryVertex), nullptr);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(SceneryVertex),
+		reinterpret_cast<const void*>(offsetof(SceneryVertex, color)));
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	_sceneReady = false;
+	_sceneTrack = nullptr;
 	initializeShader();
 }
 
@@ -195,39 +210,31 @@ void Renderer::drawCar(const Car& car) {
 	glBindVertexArray(0);
 }
 
+void Renderer::cacheTrack(const Track& track) {
+	const auto scene = buildTrackScenery(track);
+	glBindBuffer(GL_ARRAY_BUFFER, _sceneVBO);
+	glBufferData(GL_ARRAY_BUFFER, scene.vertices.size() * sizeof(SceneryVertex),
+		scene.vertices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	_sceneTriangles = static_cast<GLsizei>(scene.triangleVertexCount);
+	_sceneLines = static_cast<GLsizei>(scene.vertices.size() - scene.triangleVertexCount);
+	_sceneTrack = &track;
+	_sceneReady = true;
+}
+
 void Renderer::drawTrack(const Track& track) {
+	if (!_sceneReady || _sceneTrack != &track)
+		cacheTrack(track);
 	glUseProgram(_shaderProgram);
 	const glm::mat4 identity{1.0f};
 	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(identity));
-	const GLint color = glGetUniformLocation(_shaderProgram, "objectColor");
-	std::vector<Vec2> vertices;
-	vertices.reserve(track.mesh().size() * 3);
-	for (const auto& t : track.mesh()) {
-		vertices.push_back(t.a);
-		vertices.push_back(t.b);
-		vertices.push_back(t.c);
-	}
-	glBindVertexArray(_trackVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, _trackVBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec2), vertices.data(), GL_STREAM_DRAW);
-	glUniform3f(color, 0.28f, 0.3f, 0.29f);
-	glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size()));
-	vertices.clear();
-	for (const auto& e : track.boundaries()) {
-		vertices.push_back(e.a);
-		vertices.push_back(e.b);
-	}
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec2), vertices.data(), GL_STREAM_DRAW);
-	glUniform3f(color, 0.85f, 0.88f, 0.82f);
-	glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
-	const auto p = track.startPosition();
-	const float a = track.startHeading(), half = track.roadWidth() / 2;
-	const Vec2 line[] = {{p.x - std::sin(a) * half, p.y + std::cos(a) * half},
-						 {p.x + std::sin(a) * half, p.y - std::cos(a) * half}};
-	glBufferData(GL_ARRAY_BUFFER, sizeof(line), line, GL_STREAM_DRAW);
-	glUniform3f(color, 1, 0.7f, 0.3f);
-	glDrawArrays(GL_LINES, 0, 2);
+	const GLint vertexColors = glGetUniformLocation(_shaderProgram, "useVertexColor");
+	glUniform1i(vertexColors, GL_TRUE);
+	glBindVertexArray(_sceneVAO);
+	glDrawArrays(GL_TRIANGLES, 0, _sceneTriangles);
+	glDrawArrays(GL_LINES, _sceneTriangles, _sceneLines);
 	glBindVertexArray(0);
+	glUniform1i(vertexColors, GL_FALSE);
 }
 
 void Renderer::drawSensors(const Car& car, const Track& track) {
@@ -251,6 +258,12 @@ void Renderer::drawSensors(const Car& car, const Track& track) {
 }
 
 void Renderer::shutdown() {
+	glDeleteBuffers(1, &_sceneVBO);
+	glDeleteVertexArrays(1, &_sceneVAO);
+	_sceneVBO = _sceneVAO = 0;
+	_sceneTriangles = _sceneLines = 0;
+	_sceneReady = false;
+	_sceneTrack = nullptr;
 	glDeleteBuffers(1, &_trackVBO);
 	glDeleteVertexArrays(1, &_trackVAO);
 	_trackVBO = _trackVAO = 0;

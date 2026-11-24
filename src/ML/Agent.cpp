@@ -10,11 +10,18 @@
 #include "ML/Agent.hpp"
 #include <iostream>
 
-Agent::Agent(const Track& track, Vec2 startPosition): _track(track), _simulation(track, startPosition),
-				_network(std::vector<Layer>{Layer{8 , 16, Activation::Tanh},
-											Layer{16, 16, Activation::Tanh},
-											Layer{16, 3, Activation::Tanh}}),
-			_progress(track.length(), track.progressAt(startPosition)), _maxDuration(std::max(120.0f, track.length() / 5.0f)) {}
+Agent::Agent(const Track& track, Vec2 startPosition, std::optional<float> startingRaceCoordinate)
+	: _track(track), _simulation(track, startPosition),
+	  _network(std::vector<Layer>{Layer{8, 16, Activation::Tanh},
+								  Layer{16, 16, Activation::Tanh},
+								  Layer{16, 3, Activation::Tanh}}),
+	  _progress(track.length(), track.progressAt(startPosition)),
+	  _startingRaceCoordinate(startingRaceCoordinate.value_or(
+		  std::remainder(_simulation.location().coordinate, track.length()))),
+	  _maxDuration(std::max(120.0f, track.length() / 5.0f)) {
+	if (!std::isfinite(_startingRaceCoordinate))
+		throw neuralError("Starting race coordinate must be finite");
+}
 
 void Agent::step(float dt) {
 	if (!_active)
@@ -54,6 +61,10 @@ bool Agent::isActive() const noexcept {
 
 float Agent::progress() const noexcept {
 	return _progress.progress();
+}
+
+float Agent::racePosition() const noexcept {
+	return _startingRaceCoordinate + _progress.progress();
 }
 
 float Agent::bestProgress() const noexcept {

@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <optional>
 
 #include "Exception.hpp"
 #include "Simulation.hpp"
@@ -20,7 +21,8 @@
 
 class Agent {
 	public:
-		explicit Agent(const Track& track, Vec2 startPosition);
+		explicit Agent(const Track& track, Vec2 startPosition,
+			std::optional<float> startingRaceCoordinate = {});
 
 		void step(float dt);
 		void reset();
@@ -28,6 +30,7 @@ class Agent {
 		[[nodiscard]] const Car& car() const noexcept;
 		[[nodiscard]] bool isActive() const noexcept;
 		[[nodiscard]] float progress() const noexcept;
+		[[nodiscard]] float racePosition() const noexcept;
 		[[nodiscard]] float bestProgress() const noexcept;
 		[[nodiscard]] const Network& network() const noexcept;
 		[[nodiscard]] std::size_t lapCount() const noexcept;
@@ -43,6 +46,7 @@ class Agent {
 		Simulation _simulation;
 		Network _network;
 		ProgressTracker _progress;
+		float _startingRaceCoordinate; // camera ranking, independent of the learning score
 
 		bool _active = true;
 		float _elapsedTime = 0.0f;

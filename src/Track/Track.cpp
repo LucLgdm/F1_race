@@ -63,6 +63,36 @@ Vec2 joinedOffset(float incoming, float outgoing, float halfWidth) {
 	const float divisor = dot(sum, n2);
 	return divisor > 0.125f ? mul(sum, halfWidth / divisor) : mul(n2, halfWidth);
 }
+float coordinateMargin(Vec2 a, Vec2 b) {
+	return 8 * std::numeric_limits<float>::epsilon() *
+		   std::max({1.0f, std::abs(a.x), std::abs(a.y), std::abs(b.x), std::abs(b.y)});
+}
+Aabb2D boundsOf(Vec2 a, Vec2 b) {
+	Aabb2D bounds;
+	bounds.expand(a);
+	bounds.expand(b);
+	return bounds;
+}
+Aabb2D padded(Aabb2D bounds, float margin) {
+	bounds.min.x -= margin;
+	bounds.min.y -= margin;
+	bounds.max.x += margin;
+	bounds.max.y += margin;
+	return bounds;
+}
+Aabb2D triangleBounds(const TrackTriangle& triangle) {
+	auto bounds = boundsOf(triangle.a, triangle.b);
+	bounds.expand(triangle.c);
+	const float area = std::abs(cross(sub(triangle.b, triangle.a), sub(triangle.c, triangle.a)));
+	float margin = coordinateMargin(bounds.min, bounds.max);
+	if (area >= 1e-6f) {
+		const float extent = std::max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y);
+		// contains() accepts cross products within 1e-4 of an edge. Account
+		// for that expanded triangle, including very thin triangles and rounding.
+		margin = margin * (1 + 4 * extent * extent / area) + 2e-4f * extent / area;
+	}
+	return padded(bounds, margin);
+}
 } // namespace
 
 Track::Track(float width, float height, float roadWidth) : _roadWidth(roadWidth), _startDistance(0) {
@@ -113,6 +143,8 @@ void Track::rebuild() {
 	_offsets.clear();
 	_mesh.clear();
 	_boundaries.clear();
+	_meshBvh.clear();
+	_boundaryBvh.clear();
 	for (const auto& s : _segments) {
 		if (!finite(s.start) || std::abs(s.start.x) > 100000 || std::abs(s.start.y) > 100000 ||
 			!std::isfinite(s.heading) || !std::isfinite(s.length) || !std::isfinite(s.radius) ||
@@ -164,6 +196,22 @@ void Track::rebuild() {
 		if (!endJoined)
 			_boundaries.push_back({left.back(), right.back()});
 	}
+	rebuildSpatialIndex();
+}
+void Track::rebuildSpatialIndex() {
+	std::vector<Aabb2D> bounds;
+	bounds.reserve(std::max(_mesh.size(), _boundaries.size()));
+	for (const auto& triangle : _mesh)
+		bounds.push_back(triangleBounds(triangle));
+	_meshBvh.build(bounds);
+	bounds.clear();
+	for (const auto& edge : _boundaries) {
+		const auto box = boundsOf(edge.a, edge.b);
+		// raycast() accepts u slightly outside [0, 1], extending endpoints.
+		const float extent = std::max(box.max.x - box.min.x, box.max.y - box.min.y);
+		bounds.push_back(padded(box, 1.1e-5f * extent + coordinateMargin(edge.a, edge.b)));
+	}
+	_boundaryBvh.build(bounds);
 }
 TrackLocation Track::atRawDistance(float distance) const noexcept {
 	TrackLocation result;
@@ -237,32 +285,34 @@ TrackLocation Track::locate(Vec2 position, std::optional<float> previous, float 
 	return result;
 }
 bool Track::contains(Vec2 p) const noexcept {
-	for (const auto& t : _mesh) {
+	return _meshBvh.anyOverlapping({p, p}, [&](std::size_t index) {
+		const auto& t = _mesh[index];
 		if (std::abs(cross(sub(t.b, t.a), sub(t.c, t.a))) < 1e-6f)
-			continue;
+			return false;
 		const float a = cross(sub(t.b, t.a), sub(p, t.a)), b = cross(sub(t.c, t.b), sub(p, t.b)),
 					c = cross(sub(t.a, t.c), sub(p, t.c));
-		if ((a >= -1e-4f && b >= -1e-4f && c >= -1e-4f) || (a <= 1e-4f && b <= 1e-4f && c <= 1e-4f))
-			return true;
-	}
-	return false;
+		return (a >= -1e-4f && b >= -1e-4f && c >= -1e-4f) ||
+			   (a <= 1e-4f && b <= 1e-4f && c <= 1e-4f);
+	});
 }
 bool Track::canDrive(Vec2 p, float radius) const noexcept {
 	if (!finite(p) || !std::isfinite(radius) || radius < 0 || !contains(p))
 		return false;
-	for (const auto& edge : _boundaries)
-		if (distanceSquared(p, edge.a, edge.b) + 1e-5f < radius * radius)
-			return false;
-	return true;
+	const float margin = radius + coordinateMargin(p, p);
+	return !_boundaryBvh.anyOverlapping(padded({p, p}, margin), [&](std::size_t index) {
+		const auto& edge = _boundaries[index];
+		return distanceSquared(p, edge.a, edge.b) + 1e-5f < radius * radius;
+	});
 }
 bool Track::canTravel(Vec2 from, Vec2 to, float radius) const noexcept {
 	if (!canDrive(from, radius) || !canDrive(to, radius))
 		return false;
-	for (const auto& edge : _boundaries)
-		if (intersects(from, to, edge.a, edge.b) ||
-			edgeDistanceSquared(from, to, edge.a, edge.b) + 1e-5f < radius * radius)
-			return false;
-	return true;
+	const auto query = padded(boundsOf(from, to), radius + coordinateMargin(from, to));
+	return !_boundaryBvh.anyOverlapping(query, [&](std::size_t index) {
+		const auto& edge = _boundaries[index];
+		return intersects(from, to, edge.a, edge.b) ||
+			   edgeDistanceSquared(from, to, edge.a, edge.b) + 1e-5f < radius * radius;
+	});
 }
 float Track::raycast(Vec2 origin, float angle, float maxDistance) const {
 	if (!finite(origin) || !std::isfinite(angle) || !std::isfinite(maxDistance) || maxDistance <= 0)
@@ -271,16 +321,19 @@ float Track::raycast(Vec2 origin, float angle, float maxDistance) const {
 		return 0;
 	const Vec2 d = direction(angle);
 	float result = maxDistance;
-	for (const auto& edge : _boundaries) {
+	const auto query = padded(boundsOf(origin, add(origin, mul(d, maxDistance))),
+		1e-4f + coordinateMargin(origin, origin) + 8 * std::numeric_limits<float>::epsilon() * maxDistance);
+	_boundaryBvh.forEachOverlapping(query, [&](std::size_t index) {
+		const auto& edge = _boundaries[index];
 		const Vec2 v = sub(edge.b, edge.a);
 		const float det = cross(d, v);
 		if (std::abs(det) < 1e-7f)
-			continue;
+			return;
 		const Vec2 offset = sub(edge.a, origin);
 		const float t = cross(offset, v) / det, u = cross(offset, d) / det;
 		if (t >= -1e-4f && u >= -1e-5f && u <= 1.00001f)
 			result = std::min(result, std::max(0.0f, t));
-	}
+	});
 	return result;
 }
 std::vector<std::string> Track::issues() const {

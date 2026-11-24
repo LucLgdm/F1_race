@@ -37,6 +37,7 @@ jobs:
         run: >-
           cmake -S . -B build-ci -G Ninja
           -DBUILD_TESTING=ON
+          -DBUILD_BENCHMARKS=ON
           -DENABLE_COVERAGE=ON
           -DCMAKE_BUILD_TYPE=Debug
 
