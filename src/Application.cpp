@@ -38,6 +38,7 @@ void Application::init() {
 void Application::run() {
 	constexpr double fixedDt = 1.0 / 120.0;
 	double lastTime = glfwGetTime(), accumulator = 0.0;
+	bool previousFastTraining = false;
 	while (!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
 		_imGuiLayer.beginFrame();
@@ -96,6 +97,20 @@ void Application::run() {
 				accumulator = 0;
 			}
 		}
+
+		const bool acceleratedTraining = !_editing && !_manual && _trainingSettings.accelerated;
+
+		const bool fastTraining = acceleratedTraining && !_trainingSettings.paused;
+
+		if (fastTraining != previousFastTraining) {
+			// Aucune attente de rafraîchissement pendant l'entraînement.
+			glfwSwapInterval(fastTraining ? 0 : 1);
+
+			accumulator = 0.0;
+			lastTime = glfwGetTime();
+			previousFastTraining = fastTraining;
+		}
+
 		const double now = glfwGetTime();
 		const double frameDt = std::clamp(now - lastTime, 0.0, 0.25);
 		lastTime = now;
@@ -105,18 +120,34 @@ void Application::run() {
 			_manual->reset();
 		if (_editing || (!_manual && _trainingSettings.paused))
 			accumulator = 0;
-		else if (!_manual && _trainingSettings.accelerated) {
-			accumulator = 0;
-			const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{8};
+		// else if (!_manual && _trainingSettings.accelerated) {
+		// 	accumulator = 0;
+		// 	const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{8};
+		// 	try {
+		// 		do {
+		// 			stepTraining(static_cast<float>(fixedDt));
+		// 		} while (std::chrono::steady_clock::now() < deadline);
+		// 	} catch (const std::exception& e) {
+		// 		_trainingSettings.paused = true;
+		// 		_imGuiLayer.setError(e.what());
+		// 	}
+		// } 
+		else if (fastTraining) {
+			accumulator = 0.0;
+
+			using Clock = std::chrono::steady_clock;
+			const auto deadline =
+				Clock::now() + std::chrono::milliseconds{100};
+
 			try {
 				do {
 					stepTraining(static_cast<float>(fixedDt));
-				} while (std::chrono::steady_clock::now() < deadline);
+				} while (Clock::now() < deadline);
 			} catch (const std::exception& e) {
 				_trainingSettings.paused = true;
 				_imGuiLayer.setError(e.what());
 			}
-		} else {
+		}else {
 			accumulator += frameDt;
 			try {
 				while (accumulator >= fixedDt) {
@@ -137,7 +168,7 @@ void Application::run() {
 		glViewport(0, 0, width, height);
 		glClearColor(0.1f, 0.16f, 0.12f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		if (!_editing && width > 0 && height > 0) {
+		if (!_editing && !acceleratedTraining && width > 0 && height > 0) {
 			const auto beginCameraFrame = [&](Vec2 followedPosition) {
 				CameraView view{followedPosition, 30.0f};
 				int viewportLeft = 0;
@@ -322,10 +353,10 @@ void Application::stepTraining(float dt) {
 
 		agent.step(dt);
 
-		if (agent.trackFinished()) {
-			std::cout << "Agent " << i << " | Tour " << agent.lapCount() << " | Temps " << agent.lastLapTime()
-					  << " s" << std::endl;
-		}
+		// if (agent.trackFinished()) {
+		// 	std::cout << "Agent " << i << " | Tour " << agent.lapCount() << " | Temps " << agent.lastLapTime()
+		// 			  << " s" << std::endl;
+		// }
 	}
 
 	if (_replayChampion)

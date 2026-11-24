@@ -34,8 +34,7 @@ bool Simulation::step(const CarControls& controls, float dt) {
 			_car.stop();
 			collided = true;
 		}
-		const float maxTravel =
-			std::max(_track.roadWidth() * 1.5f, previousState.speed() * step * 3.0f + 1.0f);
+		const float maxTravel = std::max(_track.roadWidth() * 1.5f, previousState.speed() * step * 3.0f + 1.0f);
 		_location = _track.locate(_car.position(), _location.coordinate, maxTravel);
 		_trackFinished = _lapCounter.update(_location.coordinate, step) || _trackFinished;
 	}

@@ -60,7 +60,7 @@ void ImGuiLayer::init(GLFWwindow* window, int width, int height) {
 	style->FrameRounding = 5.0f;
 	
 	_initialized = true;
-	std::cout << "\033[32m[ImGuiLayer]\033[0m \033[33mImGui layer initialized.\033[0m" << std::endl;
+	// std::cout << "\033[32m[ImGuiLayer]\033[0m \033[33mImGui layer initialized.\033[0m" << std::endl;
 }
 
 void ImGuiLayer::beginFrame() {
