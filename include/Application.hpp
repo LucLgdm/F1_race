@@ -58,6 +58,7 @@ class Application {
 
 		Track _track{800.0f, 500.0f, 20.0f};
 		std::vector<Agent> _agents;
+		std::optional<std::size_t> _followedAgent;
 		bool _generationEvaluated = false;
 		std::mt19937 _generator{std::random_device{}()};
 		std::size_t _generation = 1;

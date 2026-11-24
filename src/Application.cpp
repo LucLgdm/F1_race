@@ -9,6 +9,7 @@
 
 #include "Application.hpp"
 #include "CameraView.hpp"
+#include "TrainingCamera.hpp"
 #include <cmath>
 #include <sstream>
 
@@ -158,11 +159,8 @@ void Application::run() {
 				if (_showSensors)
 					_renderer.drawSensors(_manual->car(), _track);
 			} else if (_trainingSettings.showSimulation && !_agents.empty()) {
-				const auto leader =
-					std::max_element(_agents.begin(), _agents.end(), [](const Agent& a, const Agent& b) {
-						return a.progress() < b.progress();
-					});
-				beginCameraFrame(leader->car().position());
+				_followedAgent = selectTrainingCameraTarget(_agents, _followedAgent);
+				beginCameraFrame(_agents[*_followedAgent].car().position());
 				_renderer.drawTrack(_track);
 				for (const auto& agent : _agents)
 					_renderer.drawCar(agent.car());
@@ -187,11 +185,12 @@ void Application::resetPopulation(const Network* network, bool replay) {
 	if (!replay && lateralOffset <= 0.0f)
 		throw trackError("Track is too narrow for two starting columns");
 
+	_followedAgent.reset();
 	_agents.clear();
 	_agents.reserve(count);
 
 	for (std::size_t i = 0; i < count; ++i) {
-		const float coordinate = -distanceBeforeLine - static_cast<float>(i) * stagger;
+		float coordinate = -distanceBeforeLine - static_cast<float>(i) * stagger;
 
 		const Vec2 center = _track.pointAt(coordinate);
 		const float heading = _track.headingAt(coordinate);
@@ -204,13 +203,14 @@ void Application::resetPopulation(const Network* network, bool replay) {
 		Vec2 start{center.x - std::sin(heading) * offset, center.y + std::cos(heading) * offset};
 
 		if (!_track.canDrive(start, carRadius)) {
-			if (replay)
+			if (replay) {
 				start = _track.startPosition();
-			else
+				coordinate = 0.0f;
+			} else
 				throw trackError("Starting grid extends outside the track");
 		}
 
-		_agents.emplace_back(_track, start);
+		_agents.emplace_back(_track, start, coordinate);
 
 		if (network)
 			_agents.back().setNetwork(*network);
@@ -226,6 +226,7 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 		throw IOError("Choisis un nom de circuit simple, sans chemin.");
 	if (!request.track.issues().empty())
 		throw trackError("The track is not playable");
+	_followedAgent.reset();
 	_agents.clear();
 	_manual.reset();
 	_track = std::move(request.track);
@@ -303,6 +304,7 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 		}
 		agent.reset();
 	}
+	_followedAgent.reset();
 	++_generation;
 	_generationEvaluated = false;
 }
@@ -392,6 +394,7 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 
 	SavedChampion saved = ChampionIO::read(input);
 
+	_followedAgent.reset();
 	_agents.clear();
 	_track = std::move(saved.track);
 	_bestNetwork = std::move(saved.network);

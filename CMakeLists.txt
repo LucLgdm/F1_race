@@ -72,6 +72,7 @@ if(BUILD_TESTING)
 		tests/test_lap.cpp
 		tests/test_champion_io.cpp
 		tests/test_track_editor.cpp
+		tests/test_training_camera.cpp
 		src/Simulation.cpp
 		src/Track/Car.cpp
 		src/Track/TrackEditor.cpp
@@ -83,6 +84,7 @@ if(BUILD_TESTING)
 		src/ML/Layer.cpp
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
+		src/ML/Agent.cpp
 		src/Track/Track.cpp
 		src/Track/Bvh2D.cpp
 		src/Track/TrackIO.cpp

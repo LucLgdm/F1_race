@@ -29,7 +29,11 @@ l'éditeur ; la fermeture de la fenêtre quitte le programme. L'entraînement d�
 
 La case **Vue de tout le circuit**, disponible dans les panneaux de conduite et d'entraînement,
 bascule entre le suivi d'une voiture et le cadrage automatique de l'ensemble du tracé. En conduite,
-le suivi cible ta voiture ; en entraînement, il cible la voiture ayant la meilleure progression.
+le suivi cible ta voiture ; en entraînement, il cible la voiture en tête parmi les agents actifs.
+Le classement tient compte du décalage sur la grille et du passage de la ligne de départ.
+À égalité, la caméra conserve sa cible ; elle change lors d’un dépassement ou lorsque la cible
+cesse de travailler. Si tous les agents sont arrêtés, elle conserve le dernier cadrage jusqu’à
+la prochaine génération. Ce classement visuel est indépendant du score d’apprentissage.
 La vue globale suit les dimensions réelles de la piste et le format de la fenêtre, avec une marge.
 Le panneau ImGui occupe une zone réservée à gauche pour éviter de masquer une partie du circuit.
 La caméra de l'éditeur reste indépendante de ce choix.
