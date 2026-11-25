@@ -144,6 +144,8 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	
     if (settings.mode==DrivingMode::Race && !settings.fullRace) {
         if (stats.raceSuccesses) {
+            if (*stats.raceSuccesses==5)
+                ImGui::Text("Depart en peloton : %s",stats.qualifiedStart ? "valide" : "a ameliorer");
             ImGui::Text("Dernier bilan : %llu / 5", static_cast<unsigned long long>(*stats.raceSuccesses));
             ImGui::Text("Contacts voitures : %llu | piste : %llu",
                 static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
@@ -179,7 +181,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
                 settings.paused=true;
             }
         } else {
-            ImGui::TextWrapped("Le champion sera pret pour la course quand un candidat aura reussi les 5 exercices.");
+            ImGui::TextWrapped("Le champion sera pret pour la course quand un candidat aura reussi les 5 exercices et le depart en peloton.");
             if (settings.paused) ImGui::TextWrapped("Decoche Pause pour entrainer les voitures.");
         }
     }

@@ -32,7 +32,11 @@ Les essais s'arrêtent également après 30 s ou 4 s sans progrès suffisant.
 
 Le classement privilégie le nombre de réussites, puis la somme des progressions
 normalisées des essais, puis le temps total. Lorsque les cinq essais sont réussis,
-la progression totale vaut cinq : le temps départage alors les réseaux.
+les candidats sont départagés par un départ simulé avec la grille et le nombre de
+voitures choisis. Pendant six secondes chaque voiture doit avancer d'au moins
+12 m et toutes doivent éviter les contacts et les sorties. Le temps des cinq
+essais départage les candidats qualifiés. Le départ est revérifié au lancement
+de chaque course, y compris pour les anciens fichiers et les changements de grille.
 Le meilleur réseau est conservé sans mutation à la génération suivante.
 Le bilan affiché correspond au meilleur candidat de la dernière génération achevée.
 L'apprentissage utilise la sélection et les mutations, pas la rétropropagation MSE.
@@ -42,7 +46,7 @@ Aucun nombre de générations ne garantit la réussite.
 
 Après l'apprentissage des dépassements, choisir **Course complete** dans le menu.
 Depuis les exercices, retirer la pause et attendre qu'un candidat réussisse les cinq
-essais. **Prochaine sauvegarde** indique où son réseau sera écrit. Dès le premier
+essais et le départ en peloton. **Prochaine sauvegarde** indique où son réseau sera écrit. Dès le premier
 record, **Courir avec le champion actif** et le menu **Course complete** utilisent
 ce champion de dépassement. Le champ **Fichier a charger** peut garder le nom du
 chrono d'origine. Avant le premier record, le menu conserve la session d'exercices.
@@ -99,7 +103,7 @@ Le champ **Fichier a charger** reste le fichier choisi. **Origine du reseau** et
 vraies dimensions de la politique utilisée : le fichier chrono peut toujours
 contenir 16 neurones par couche cachée alors que sa copie de dépassement en a 32.
 La conversion n'écrit pas dans le fichier chrono ; le nouveau `_race` est créé
-seulement après la réussite des cinq exercices.
+après les cinq exercices et la qualification du départ en peloton.
 
 Dans les exercices, la voiture rouge est l'apprenant, avec sa vitesse réelle en
 km/h et ses commandes d'accélérateur et de frein. La voiture bleue est l'adversaire
@@ -157,7 +161,7 @@ le gabarit physique et `EVALUATION 1`. La lecture refuse une version d'observati
 un gabarit ou une version d'exercice incompatibles. Les sorties conservent la version 1.
 Par compatibilité de structure, `LAP_TIME` contient en mode course le **temps total
 des cinq exercices réussis**, pas un temps au tour. Le panneau l'affiche comme record
-sur la suite. La sauvegarde automatique n'a lieu qu'après cinq réussites.
+sur la suite. La sauvegarde automatique n'a lieu qu'après cinq réussites et la qualification du départ en peloton.
 
 Exemple : `Le_Mans.f1` pour le chrono, `Le_Mans_race.f1` pour les dépassements.
 Un fichier existant associé à une autre géométrie ou illisible est conservé ; une

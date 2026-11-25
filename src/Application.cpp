@@ -85,6 +85,7 @@ void Application::run() {
                     stats.raceSuccesses=_lastRaceScore.successes;
                 stats.carContacts=_lastRaceScore.carContacts;
                 stats.wallContacts=_lastRaceScore.wallContacts;
+                stats.qualifiedStart=_lastRaceScore.startFitness==1.0f;
                 const auto shown=_raceTraining->displayIndex();
                 const auto& episode=_raceTraining->episode(shown);
                 stats.raceScenario=std::min(_raceTraining->scenarioIndex(shown),_raceTraining->scenarioCount()-1);
@@ -136,6 +137,7 @@ void Application::run() {
                 _trainingSettings.paused=true;
                 try {
                     auto next=std::make_unique<RaceSession>(_track,_raceSession->policy(0),raceSettings());
+                    next->requireQualifiedStart();
                     _raceSession=std::move(next); _followedAgent.reset();
                     _trainingSettings.paused=true; _trainingSettings.accelerated=false; accumulator=0;
                     _imGuiLayer.setError("");
@@ -512,7 +514,7 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
     const bool fullRace=request.mode==ChampionLoadMode::StartFullRace;
     if (fullRace && saved.mode!=DrivingMode::Race)
         throw IOError("Ce fichier contient un champion chrono. Choisis le fichier de depassement enregistre apres les 5 exercices.");
-    if (fullRace) (void)RaceSession{saved.track,saved.network,raceSettings()};
+    if (fullRace) RaceSession{saved.track,saved.network,raceSettings()}.requireQualifiedStart();
     if (seedRace && saved.mode!=DrivingMode::Chrono)
         throw IOError("Select a chrono champion to seed course training");
     // Validate transfer before changing the active world.
@@ -620,6 +622,7 @@ void Application::configureTraining(DrivingMode mode, const Network* seed, bool 
         if (!prepared.record)
             throw IOError("Aucun champion de depassement pour ce circuit. Lance les exercices ou charge un champion de depassement.");
         session=std::make_unique<RaceSession>(_track,*prepared.record,raceSettings());
+        session->requireQualifiedStart();
     } else if (mode==DrivingMode::Race) race=std::make_unique<RaceTraining>(_track,initial);
     _drivingMode=mode; _trainingSettings.mode=mode;
     _bestNetwork=std::move(prepared.record); _bestLapTime=prepared.recordTime;
@@ -637,7 +640,10 @@ void Application::switchTrafficActivity(bool fullRace) {
         throw IOError("Pour courir, termine les 5 exercices avec un meme candidat ou charge un champion de depassement.");
     std::unique_ptr<RaceTraining> training;
     std::unique_ptr<RaceSession> session;
-    if (fullRace) session=std::make_unique<RaceSession>(_track,*_bestNetwork,raceSettings());
+    if (fullRace) {
+        session=std::make_unique<RaceSession>(_track,*_bestNetwork,raceSettings());
+        session->requireQualifiedStart();
+    }
     else training=std::make_unique<RaceTraining>(_track,&*_bestNetwork);
     _raceTraining=std::move(training); _raceSession=std::move(session);
     _agents.clear(); _followedAgent.reset(); _generation=1; _lastRaceScore={};
@@ -646,13 +652,16 @@ void Application::switchTrafficActivity(bool fullRace) {
     _replayChampion=false;
 }
 void Application::stepRaceTraining(float dt) {
-    if (_raceTraining->finished()) return;
-    _raceTraining->step(dt);
+    if (_raceTraining->finished() && _replayChampion) return;
+    if (!_raceTraining->finished()) _raceTraining->step(dt);
     if (!_raceTraining->finished()) return;
+    _raceTraining->evaluateGridStarts(raceSettings().cars);
     const auto best=_raceTraining->bestIndex();
     _lastRaceScore=_raceTraining->score(best);
     if (_replayChampion) return;
-    if (_lastRaceScore.successes==_raceTraining->scenarioCount() && _lastRaceScore.time<_bestLapTime) {
+    if (_lastRaceScore.startFitness==1.0f &&
+        (_lastRaceScore.time<_bestLapTime || !_bestNetwork ||
+         RaceSession{_track,*_bestNetwork,raceSettings()}.startFitness()<1.0f)) {
         std::ostringstream output;
         ChampionIO::write(output,_track,_raceTraining->network(best),_lastRaceScore.time,DrivingMode::Race);
         TrackIO::saveText(_championFile,output.str());

@@ -1,4 +1,5 @@
 #include "ML/RaceTraining.hpp"
+#include "ML/RaceSession.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -23,6 +24,7 @@ std::array<RaceScenario,5> raceScenarios(const Track& track) {
 }
 bool betterRaceScore(const RaceScore& a, const RaceScore& b) {
     if (a.successes!=b.successes) return a.successes>b.successes;
+    if (a.startFitness!=b.startFitness) return a.startFitness>b.startFitness;
     if (a.progress!=b.progress) return a.progress>b.progress;
     return a.time<b.time;
 }
@@ -137,6 +139,14 @@ void RaceTraining::step(float dt) {
                 _episodes[i]=std::make_unique<RaceEpisode>(_track,_scenarios[_scenarioIndices[i]]);
         }
     }
+}
+void RaceTraining::evaluateGridStarts(std::size_t cars) {
+    if (!finished()) throw neuralError("Evaluate grid starts after the five exercises");
+    RaceSettings settings;
+    settings.cars=cars;
+    for (std::size_t i=0;i<size();++i)
+        if (_scores[i].successes==scenarioCount())
+            _scores[i].startFitness=RaceSession{_track,_networks[i],settings}.startFitness();
 }
 void RaceTraining::evolve(std::mt19937& rng) {
     if (!finished()) throw neuralError("Cannot evolve before the race evaluation barrier");

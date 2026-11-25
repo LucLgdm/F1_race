@@ -59,6 +59,7 @@ struct TrainingStats {
 
 	bool hasChampion = false;
 	float bestLapTime = 0.0f;
+    bool qualifiedStart = false;
     std::optional<std::size_t> raceSuccesses;
     std::size_t carContacts = 0;
     std::size_t wallContacts = 0;

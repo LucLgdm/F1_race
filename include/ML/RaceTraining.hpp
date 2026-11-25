@@ -26,6 +26,7 @@ struct RaceScore {
     std::size_t wallContacts = 0;
     float progress = 0.0f; // sum of capped, normalized scenario progress
     float time = 0.0f;
+    float startFitness = 0.0f;
 };
 [[nodiscard]] bool betterRaceScore(const RaceScore& a, const RaceScore& b);
 
@@ -69,6 +70,7 @@ public:
     [[nodiscard]] std::size_t scenarioIndex(std::size_t i) const { return _scenarioIndices.at(i); }
     [[nodiscard]] std::size_t size() const { return _networks.size(); }
     [[nodiscard]] std::size_t scenarioCount() const { return _scenarios.size(); }
+    void evaluateGridStarts(std::size_t cars);
     void evolve(std::mt19937& rng);
 private:
     const Track& _track;

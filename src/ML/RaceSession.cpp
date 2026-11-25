@@ -74,6 +74,28 @@ std::array<float,23> RaceSession::observation(std::size_t i) const {
     return observeTraffic(own.observe(),snapshotCar(own.car()),
                           std::span<const CarSnapshot>{neighbours.data(),count});
 }
+float RaceSession::startFitness() const {
+    if (_elapsed!=0) throw carError("Start qualification requires a fresh grid");
+    RaceSession trial=*this;
+    constexpr int ticks=6*120;
+    constexpr float minimumDistance=12.0f;
+    float progress=0;
+    for (int i=0;i<ticks;++i) {
+        trial.step(1.0f/120);
+        float leastDistance=minimumDistance;
+        for (std::size_t car=0;car<size();++car) {
+            if (trial.status(car)==DriverStatus::Finished) continue;
+            if (trial.status(car)!=DriverStatus::Racing) return progress;
+            leastDistance=std::min(leastDistance,trial.racePosition(car)-racePosition(car));
+        }
+        progress=(static_cast<float>(i+1)/ticks)*std::clamp(leastDistance/minimumDistance,0.0f,1.0f);
+    }
+    return progress;
+}
+void RaceSession::requireQualifiedStart() const {
+    if (startFitness()<1.0f)
+        throw carError("Depart en peloton non valide sur cette grille. Reprends l entrainement du fichier de depassement.");
+}
 void RaceSession::step(float dt) { advance(dt,{}); }
 void RaceSession::stepWithControls(std::span<const CarControls> controls, float dt) {
     if (controls.size()!=size()) throw carError("Each race entrant requires one command");

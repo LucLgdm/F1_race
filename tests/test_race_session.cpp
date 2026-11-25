@@ -191,3 +191,23 @@ TEST_CASE("A saved traffic policy uses a neighbour to pass in a full race", "[ml
     REQUIRE(race.contacts()==0);
     REQUIRE(race.standings().front()==1);
 }
+
+TEST_CASE("Grid qualification requires movement from every car and leaves the grid untouched", "[ml][race_session]") {
+    const Track track{800,500,20};
+    const auto stopped=quietPolicy();
+    std::vector<Neuron> controls;
+    for (float bias : {0.0f,0.5f,0.0f})
+        controls.emplace_back(std::vector<float>(23),bias,Activation::Tanh);
+    const Network moving{{Layer{std::move(controls)}}};
+    RaceSession clear{track,moving,settings()};
+    REQUIRE(clear.startFitness()==1.0f);
+    REQUIRE(clear.elapsed()==0);
+    REQUIRE(clear.car(0).speed()==0);
+    RaceSession idle{track,stopped,settings()};
+    REQUIRE(idle.startFitness()==0);
+    REQUIRE_THROWS_AS(idle.requireQualifiedStart(),carError);
+    RaceSession collision{track,{moving, stopped},settings(),{{-14,0},{-6,0}}};
+    REQUIRE_THROWS_AS(collision.requireQualifiedStart(),carError);
+    for (int i=0;i<720 && !collision.finished();++i) collision.step(1.f/120);
+    REQUIRE(collision.contacts()==1);
+}

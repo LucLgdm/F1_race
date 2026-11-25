@@ -29,6 +29,9 @@ public:
     RaceSession(const Track& track, const Network& policy, RaceSettings settings = {});
     RaceSession(const Track& track, std::vector<Network> policies, RaceSettings settings,
                 std::vector<RaceGridSlot> grid = {});
+    // Score the first six seconds from a fresh grid, leaving the real race at rest.
+    [[nodiscard]] float startFitness() const;
+    void requireQualifiedStart() const;
     void step(float dt);
     // Same physics/collision pipeline with external commands (headless validation).
     void stepWithControls(std::span<const CarControls> controls, float dt);
