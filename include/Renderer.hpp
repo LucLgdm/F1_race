@@ -12,6 +12,7 @@
 #include <glad/glad.h>
 
 #include <string>
+#include <array>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -29,7 +30,7 @@ class Renderer {
 
 		void beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBufferHeight,
 			float halfHeight = 30.0f, int viewportLeft = 0);
-		void drawCar(const Car& car);
+		void drawCar(const Car& car, std::array<float,3> color = {1.0f,0.2f,0.2f});
 		void drawTrack(const Track& track);
 		// Call after replacing/editing the same Track object.
 		void invalidateTrack() noexcept { _sceneReady = false; }

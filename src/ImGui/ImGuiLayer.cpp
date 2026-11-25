@@ -91,27 +91,57 @@ void ImGuiLayer::shutdown() {
  * **********************************************************************/
 void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) {
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(panelWidth, 620));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, std::min(settings.fullRace ? 800.0f : 620.0f, ImGui::GetIO().DisplaySize.y)));
 	ImGui::Begin("Entrainement");
 
 	if (ImGui::Button("Editeur de circuit")) _editorRequest = true;
-    int mode=settings.mode==DrivingMode::Race ? 1 : 0;
-    if (ImGui::Combo("Mode", &mode, "Chrono\0Course - depassement\0")) {
+    int mode=settings.mode==DrivingMode::Chrono ? 0 : (settings.fullRace ? 2 : 1);
+    if (ImGui::Combo("Mode", &mode, "Chrono\0Course - depassement\0Course complete\0")) {
         settings.mode=mode==0 ? DrivingMode::Chrono : DrivingMode::Race;
+        settings.fullRace=mode==2;
         settings.paused=true;
+    }
+    if (settings.fullRace) {
+        ImGui::InputInt("Voitures", &settings.raceCars);
+        ImGui::InputInt("Tours", &settings.raceLaps);
+        settings.raceCars=std::clamp(settings.raceCars,2,20);
+        settings.raceLaps=std::clamp(settings.raceLaps,1,20);
+        if (ImGui::Button("Nouvelle course")) settings.restartRace=true;
+        ImGui::TextWrapped("Reglages appliques au prochain depart.");
     }
     ImGui::Checkbox("Pause", &settings.paused);
 	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
 	ImGui::Checkbox("Vue de tout le circuit", &settings.trackOverview);
-	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
+	ImGui::Checkbox(settings.fullRace ? "Simulation acceleree" : "Entrainement accelere", &settings.accelerated);
 
 	ImGui::Separator();
-	ImGui::Text("Generation : %llu", static_cast<unsigned long long> (stats.generation));
+    if (settings.fullRace) {
+        ImGui::Text("Course %s | %.2f s",stats.raceFinished ? "terminee" : "en cours",stats.raceElapsed);
+        ImGui::Text("Objectif : %llu tours | contacts : %llu",static_cast<unsigned long long>(stats.raceLapTarget),
+                    static_cast<unsigned long long>(stats.carContacts));
+        if (ImGui::BeginTable("Classement",4,ImGuiTableFlags_RowBg|ImGuiTableFlags_ScrollY,ImVec2(0,180))) {
+            ImGui::TableSetupColumn("Pos."); ImGui::TableSetupColumn("Voiture");
+            ImGui::TableSetupColumn("Tours"); ImGui::TableSetupColumn("Etat / temps");
+            ImGui::TableHeadersRow();
+            for (std::size_t rank=0;rank<stats.standings.size();++rank) {
+                const auto& row=stats.standings[rank]; const auto color=raceCarColor(row.id);
+                ImGui::TableNextRow(); ImGui::TableNextColumn();
+                ImGui::Text("%llu",static_cast<unsigned long long>(rank+1));
+                ImGui::TableNextColumn();
+                ImGui::TextColored(ImVec4(color[0],color[1],color[2],1),"#%llu",static_cast<unsigned long long>(row.id+1));
+                ImGui::TableNextColumn(); ImGui::Text("%llu",static_cast<unsigned long long>(row.laps));
+                ImGui::TableNextColumn();
+                if (row.status==DriverStatus::Finished) ImGui::Text("%.2f s",row.finishTime);
+                else ImGui::TextUnformatted(driverStatusText(row.status));
+            }
+            ImGui::EndTable();
+        }
+    } else ImGui::Text("Generation : %llu", static_cast<unsigned long long> (stats.generation));
 	ImGui::Text("Agents actifs : %llu / %llu",
 				static_cast<unsigned long long> (stats.activeAgents),
 				static_cast<unsigned long long> (stats.populationSize));
 	
-    if (settings.mode==DrivingMode::Race) {
+    if (settings.mode==DrivingMode::Race && !settings.fullRace) {
         ImGui::Text("Meilleur bilan termine : %llu / 5", static_cast<unsigned long long>(stats.raceSuccesses));
         ImGui::Text("Contacts voitures : %llu | piste : %llu",
             static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
@@ -119,21 +149,22 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
         ImGui::TextWrapped("Chaque candidat roule dans son propre exercice face a une voiture lente.");
     }
     if (stats.hasChampion)
-        ImGui::Text(settings.mode==DrivingMode::Race ? "Record suite : %.3f s" : "Record : %.3f s", stats.bestLapTime);
+        ImGui::Text(settings.mode==DrivingMode::Race ? "Record exercices : %.3f s" : "Record : %.3f s", stats.bestLapTime);
 	else
-		ImGui::TextUnformatted("Aucun champion");
+		ImGui::TextUnformatted(settings.fullRace ? "Reseau de travail non sauvegarde" : "Aucun champion");
 	
 	ImGui::Separator();
 	ImGui::InputText("Fichier Champion", _championPath, sizeof(_championPath));
-	if (ImGui::Button("Reprendre l entrainement")) {
-		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::ResumeTraining};
-	}
-
-	if (ImGui::Button("Voir le champion"))
-		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::Replay};
-
-    if (ImGui::Button("Course depuis un champion chrono"))
-        _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::SeedRace};
+    if (!settings.fullRace) {
+        if (ImGui::Button("Reprendre l entrainement"))
+            _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::ResumeTraining};
+        if (ImGui::Button("Voir le champion"))
+            _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::Replay};
+        if (ImGui::Button("Course depuis un champion chrono"))
+            _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::SeedRace};
+    }
+    if (ImGui::Button(settings.fullRace ? "Charger ce reseau pour la course" : "Lancer une course avec ce reseau"))
+        _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::StartFullRace};
 
     if (!_errorMessage.empty())
 		ImGui::TextWrapped("%s", _errorMessage.c_str());

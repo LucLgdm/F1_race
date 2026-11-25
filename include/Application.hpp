@@ -27,6 +27,7 @@
 #include "ML/Agent.hpp"
 #include "ML/Selection.hpp"
 #include "ML/RaceTraining.hpp"
+#include "ML/RaceSession.hpp"
 #include "Track/ChampionIO.hpp"
 #include "ImGui/ImGuiLayer.hpp"
 #include "Track/TrackEditor.hpp"
@@ -61,9 +62,11 @@ class Application {
         std::vector<Agent> _agents;
         std::vector<CarControls> _commands;
         std::unique_ptr<RaceTraining> _raceTraining;
+        std::unique_ptr<RaceSession> _raceSession;
         DrivingMode _drivingMode = DrivingMode::Chrono;
         RaceScore _lastRaceScore{};
-        void configureTraining(DrivingMode mode, const Network* seed = nullptr);
+        void configureTraining(DrivingMode mode, const Network* seed = nullptr, bool fullRace = false);
+        RaceSettings raceSettings() const;
         void stepRaceTraining(float dt);
 		std::optional<std::size_t> _followedAgent;
 		bool _generationEvaluated = false;

@@ -164,7 +164,7 @@ void Renderer::beginFrame(Vec2 cameraPosition, int frameBufferWidth, int frameBu
 	glUniformMatrix4fv(glGetUniformLocation(_shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 }
 
-void Renderer::drawCar(const Car& car) {
+void Renderer::drawCar(const Car& car, std::array<float,3> color) {
 	const Vec2 position = car.position();
 
 	glm::mat4 model = glm::translate(glm::mat4{1.0f}, glm::vec3{position.x, position.y, 0.0f});
@@ -201,7 +201,7 @@ void Renderer::drawCar(const Car& car) {
 	}
 
 	// Draw the car body
-	glUniform3f(colorLocation, 1.0f, 0.2f, 0.2f);
+	glUniform3f(colorLocation, color[0], color[1], color[2]);
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);

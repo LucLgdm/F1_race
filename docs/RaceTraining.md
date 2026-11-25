@@ -1,4 +1,4 @@
-# Chrono et apprentissage des dépassements
+# Chrono, apprentissage des dépassements et course complète
 
 ## Utilisation
 
@@ -15,7 +15,7 @@
 Le mode chrono conserve les réseaux 8 → 16 → 16 → 3 et les voitures indépendantes.
 Le mode course utilise 23 → 32 → 32 → 3. Il affiche un seul candidat et sa voiture
 lente à la fois : les vingt candidats sont évalués dans des mondes distincts.
-Ils ne s'affrontent pas encore dans un peloton.
+Le mode **Course complete** réunit les voitures dans un seul peloton.
 
 Le premier exercice demande une route d'au moins 8 m de large. Une génération
 comprend quatre situations de dépassement et un essai sans trafic, identiques
@@ -32,6 +32,53 @@ Le meilleur réseau est conservé sans mutation à la génération suivante.
 Le bilan affiché correspond au meilleur candidat de la dernière génération achevée.
 L'apprentissage utilise la sélection et les mutations, pas la rétropropagation MSE.
 Aucun nombre de générations ne garantit la réussite.
+
+## Course complète sur le circuit
+
+Après l'apprentissage des dépassements, choisir **Course complete** dans le menu.
+Le mode reprend le champion de dépassement compatible du circuit ou, en l'absence
+de sauvegarde, le réseau de travail conservé à l'indice zéro des exercices (l'élite
+de la dernière génération achevée). Pour choisir un fichier précis, renseigner son
+chemin `_race.f1` puis cliquer **Lancer une course avec ce reseau** ou
+**Charger ce reseau pour la course**. Un champion chrono seul ne suffit pas : il
+ne possède pas les entrées de perception du trafic.
+
+Le départ comprend **8 voitures et 3 tours** par défaut. Les champs **Voitures**
+(2 à 20) et **Tours** (1 à 20) règlent la prochaine course. **Nouvelle course**
+reconstruit la grille et remet le chronomètre à zéro, en pause. Retirer la pause
+pour partir. Les voitures partagent initialement des copies identiques de la
+politique sélectionnée, sans mutation de leurs paramètres pendant la course.
+L'API accepte aussi des politiques différentes par participant.
+
+La grille est décalée sur deux colonnes entièrement derrière la ligne de départ.
+Le premier passage sur la ligne arme le chronométrage des tours ; il ne constitue
+pas un tour accompli. Le classement utilise la position cumulée depuis la ligne,
+puis classe les arrivants selon leur temps d'arrivée interpolé au passage de la
+ligne. Il affiche les numéros, couleurs, tours accomplis et motifs d'abandon.
+La caméra suit la voiture active en tête ; une voiture arrêtée ne la bloque pas.
+
+Les observations décrivent les trois voisines les plus proches parmi les voitures
+présentes sur la piste, en excluant la voiture observatrice. Chaque pas de 1/120 s
+comprend les phases suivantes : instantanés, observations, commandes, prédictions
+indépendantes, collisions communes, validation des déplacements et classement.
+Après un déplacement rejeté, les autres trajectoires sont vérifiées à nouveau
+pour empêcher une troisième voiture d'entrer dans la pose réoccupée.
+
+Un contact entraîne l'abandon des voitures concernées à leur dernière pose sans
+chevauchement. Elles deviennent grises, restent des obstacles et sont toujours
+perçues par les autres. Une sortie de piste ou 10 secondes sans progrès suffisant
+entraîne également un abandon. Les voitures arrivées quittent la piste active ;
+le vainqueur est affiché dans la vue finale. La course s'arrête quand plus aucune
+voiture n'est active, ou à une limite de temps adaptée à la longueur et au nombre
+de tours (`max(120, longueur × tours / 5 + 60)` secondes). L'affichage se remet
+alors en pause et quitte l'accélération pour montrer le résultat.
+
+Ce mode exécute les réseaux entraînés : il n'ajoute pas d'apprentissage dans le
+peloton et ne sauvegarde pas ses temps dans les records chrono ou dans le score
+des exercices. Réussir les exercices ne garantit pas une course propre face à
+plusieurs voitures. Les fichiers `.track` et `.f1` restent inchangés pour cette étape.
+Les simulations indépendantes et les espaces de travail par voiture préparent
+une exécution parallèle ; la résolution des collisions reste une barrière commune.
 
 ## Observations et réseau
 
@@ -118,3 +165,9 @@ réussite d'un dépassement contrôlé et d'un essai solo, rejet d'un contact, c
 évaluation identique de deux politiques et conservation de l'élite.
 Ils vérifient le mécanisme d'apprentissage et les exercices, pas la convergence
 stochastique d'une population aléatoire.
+
+Les tests `[ml][race_session]` vérifient la grille sans chevauchement, la perception
+du peloton, un dépassement avec changement de leader, les contacts simultanés et
+les réactions en chaîne après rejet d'un déplacement. Ils vérifient aussi deux
+tours complets sur un circuit arrondi, l'ordre d'arrivée, les abandons, les limites
+de course et l'absence de modification des réseaux pendant la course.

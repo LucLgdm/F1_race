@@ -12,14 +12,44 @@
 #include <cstddef>
 #include <string>
 #include "ML/DrivingMode.hpp"
+#include "ML/RaceSession.hpp"
 
 struct TrainingSettings {
     DrivingMode mode = DrivingMode::Chrono;
+    bool fullRace = false;
+    bool restartRace = false;
+    int raceCars = 8;
+    int raceLaps = 3;
 	bool paused = true;
 	bool showSimulation = true;
 	bool accelerated = false;
 	bool trackOverview = false;
 };
+
+struct RaceStanding {
+    std::size_t id = 0;
+    std::size_t laps = 0;
+    DriverStatus status = DriverStatus::Racing;
+    float finishTime = 0.0f;
+};
+
+inline std::array<float,3> raceCarColor(std::size_t id) {
+    constexpr std::array<std::array<float,3>,8> colors{{
+        {1.0f,.25f,.2f},{.2f,.6f,1.0f},{1.0f,.85f,.15f},{.3f,.9f,.4f},
+        {.8f,.35f,1.0f},{1.0f,.55f,.15f},{.2f,.9f,.9f},{1.0f,.5f,.75f}}};
+    return colors[id%colors.size()];
+}
+inline const char* driverStatusText(DriverStatus status) {
+    switch (status) {
+        case DriverStatus::Racing: return "En course";
+        case DriverStatus::Finished: return "Arrivee";
+        case DriverStatus::CarContact: return "Contact";
+        case DriverStatus::WallContact: return "Sortie";
+        case DriverStatus::Stalled: return "Immobilise";
+        case DriverStatus::Timeout: return "Temps limite";
+    }
+    return "";
+}
 
 struct TrainingStats {
 	std::size_t generation = 1;
@@ -32,13 +62,18 @@ struct TrainingStats {
     std::size_t carContacts = 0;
     std::size_t wallContacts = 0;
     std::size_t raceScenario = 0;
+    float raceElapsed = 0.0f;
+    bool raceFinished = false;
+    std::size_t raceLapTarget = 3;
+    std::vector<RaceStanding> standings;
 };
 
 
 enum class ChampionLoadMode {
 	ResumeTraining,
 	Replay,
-    SeedRace
+    SeedRace,
+    StartFullRace
 };
 
 struct ChampionLoadRequest {

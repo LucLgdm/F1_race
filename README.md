@@ -2,6 +2,8 @@
 
 Le mode **Course - depassement** ajoute un apprentissage distinct du chrono, avec
 un réseau 23 → 32 → 32 → 3 et des collisions rectangulaires entre véhicules.
+Le mode **Course complete** utilise cette politique dans un peloton sur le circuit
+entier : grille de départ, tours réglables, collisions communes et classement.
 Voir le [guide des modes chrono et course](docs/RaceTraining.md) pour les exercices,
 les sauvegardes compatibles et la préparation de la parallélisation CPU/GPU.
 

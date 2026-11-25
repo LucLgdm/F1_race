@@ -86,22 +86,41 @@ void Application::run() {
                 stats.wallContacts=_lastRaceScore.wallContacts;
                 stats.raceScenario=std::min(_raceTraining->scenarioIndex(0),_raceTraining->scenarioCount()-1);
             }
+            if (_raceSession) {
+                stats.populationSize=_raceSession->size(); stats.activeAgents=_raceSession->activeCount();
+                stats.raceElapsed=_raceSession->elapsed(); stats.raceFinished=_raceSession->finished();
+                stats.raceLapTarget=_raceSession->targetLaps(); stats.carContacts=_raceSession->contacts();
+                for (const auto i : _raceSession->standings())
+                    stats.standings.push_back({i,_raceSession->lapCount(i),_raceSession->status(i),_raceSession->finishTime(i)});
+            }
             stats.hasChampion = _bestNetwork.has_value();
 			stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0;
             _imGuiLayer.render(_trainingSettings, stats);
-            if (_trainingSettings.mode!=_drivingMode) {
+            if (_trainingSettings.mode!=_drivingMode || _trainingSettings.fullRace!=static_cast<bool>(_raceSession)) {
                 try {
-                    const auto seed=_drivingMode==DrivingMode::Chrono ? _bestNetwork : std::optional<Network>{};
-                    configureTraining(_trainingSettings.mode,seed ? &*seed : nullptr);
+                    std::optional<Network> seed=_bestNetwork;
+                    if (!seed && _raceTraining) seed=_raceTraining->network(0);
+                    if (_raceSession) seed=_raceSession->policy(0);
+                    configureTraining(_trainingSettings.mode,seed ? &*seed : nullptr,_trainingSettings.fullRace);
                     _imGuiLayer.setError("");
                 } catch (const std::exception& e) {
                     _trainingSettings.mode=_drivingMode;
+                    _trainingSettings.fullRace=static_cast<bool>(_raceSession);
                     _trainingSettings.paused=true;
                     _imGuiLayer.setError(e.what());
                 }
                 accumulator=0.0;
             }
-			cameraPanelRight = _imGuiLayer.panelRight();
+            if (std::exchange(_trainingSettings.restartRace,false) && _raceSession) {
+                _trainingSettings.paused=true;
+                try {
+                    auto next=std::make_unique<RaceSession>(_track,_raceSession->policy(0),raceSettings());
+                    _raceSession=std::move(next); _followedAgent.reset();
+                    _trainingSettings.paused=true; _trainingSettings.accelerated=false; accumulator=0;
+                    _imGuiLayer.setError("");
+                } catch (const std::exception& e) { _imGuiLayer.setError(e.what()); }
+            }
+            cameraPanelRight = _imGuiLayer.panelRight();
 			if (_imGuiLayer.takeEditorRequest()) {
 				_editor.setTrack(_track, _activeTrackFile);
 				_editing = true;
@@ -208,6 +227,18 @@ void Application::run() {
 				_renderer.drawCar(_manual->car());
 				if (_showSensors)
 					_renderer.drawSensors(_manual->car(), _track);
+            } else if (_trainingSettings.showSimulation && _raceSession) {
+                _followedAgent=_raceSession->cameraTarget(_followedAgent);
+                beginCameraFrame(_raceSession->car(*_followedAgent).position());
+                _renderer.drawTrack(_track);
+                for (std::size_t i=0;i<_raceSession->size();++i) {
+                    const auto status=_raceSession->status(i);
+                    // Finishers leave the active track; show the winner in the final view.
+                    if (status==DriverStatus::Finished && (!_raceSession->finished() || i!=*_followedAgent)) continue;
+                    const auto color=status==DriverStatus::Racing || status==DriverStatus::Finished
+                        ? raceCarColor(i) : std::array<float,3>{.45f,.45f,.45f};
+                    _renderer.drawCar(_raceSession->car(i),color);
+                }
             } else if (_trainingSettings.showSimulation && _raceTraining) {
                 // One isolated candidate world at a time; overlaying worlds would imply false collisions.
                 std::size_t shown=0;
@@ -233,6 +264,7 @@ void Application::run() {
 }
 
 void Application::resetPopulation(const Network* network, bool replay) {
+    _raceSession.reset(); _trainingSettings.fullRace=false;
     if (_drivingMode==DrivingMode::Race) {
         auto training=std::make_unique<RaceTraining>(_track,network,replay ? 1 : 20);
         _agents.clear(); _followedAgent.reset();
@@ -297,7 +329,7 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 	_followedAgent.reset();
 	_agents.clear();
 	_manual.reset();
-	_raceTraining.reset();
+	_raceTraining.reset(); _raceSession.reset();
 	_track = std::move(request.track);
 	_renderer.invalidateTrack();
 	_activeTrackFile = request.path;
@@ -307,7 +339,7 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 	_generation = 1;
 	if (request.manual)
 		_manual.emplace(_track, _track.startPosition());
-	else configureTraining(_trainingSettings.mode);
+	else configureTraining(_trainingSettings.mode,nullptr,false);
 
 	_trainingSettings.paused = true;
 	_trainingSettings.showSimulation = true;
@@ -362,6 +394,14 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 }
 
 void Application::stepTraining(float dt) {
+    if (_raceSession) {
+        _raceSession->step(dt);
+        if (_raceSession->finished()) {
+            _trainingSettings.paused=true;
+            _trainingSettings.accelerated=false;
+        }
+        return;
+    }
     if (_raceTraining) { stepRaceTraining(dt); return; }
     _commands.resize(_agents.size());
     for (std::size_t i=0;i<_agents.size();++i)
@@ -450,16 +490,20 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 
     SavedChampion saved = ChampionIO::read(input);
     const bool seedRace=request.mode==ChampionLoadMode::SeedRace;
+    const bool fullRace=request.mode==ChampionLoadMode::StartFullRace;
+    if (fullRace && saved.mode!=DrivingMode::Race)
+        throw IOError("Load a _race.f1 traffic policy to launch a full race");
+    if (fullRace) (void)RaceSession{saved.track,saved.network,raceSettings()};
     if (seedRace && saved.mode!=DrivingMode::Chrono)
         throw IOError("Select a chrono champion to seed course training");
     // Validate transfer before changing the active world.
-    if (seedRace || saved.mode==DrivingMode::Race) {
+    if (!fullRace && (seedRace || saved.mode==DrivingMode::Race)) {
         (void)saved.network.expandedDrivingNetwork();
         if (saved.track.roadWidth()<8.0f) throw trackError("Overtaking training requires a track at least 8 metres wide");
         for (const auto& scenario : raceScenarios(saved.track)) (void)RaceEpisode{saved.track,scenario};
     }
     _followedAgent.reset();
-    _agents.clear(); _raceTraining.reset(); _manual.reset();
+    _agents.clear(); _raceTraining.reset(); _raceSession.reset(); _manual.reset();
     _track=std::move(saved.track);
     _renderer.invalidateTrack();
     auto sourcePath=std::filesystem::path(request.path);
@@ -483,15 +527,20 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
         _championFile=request.path;
         _replayChampion=request.mode==ChampionLoadMode::Replay;
         _generation=1; _lastRaceScore={};
-        resetPopulation(&*_bestNetwork,_replayChampion);
-        if (!_replayChampion && _drivingMode==DrivingMode::Chrono) evolvePopulation(0);
+        if (fullRace) {
+            _raceSession=std::make_unique<RaceSession>(_track,*_bestNetwork,raceSettings());
+            _trainingSettings.fullRace=true; _replayChampion=false;
+        } else {
+            resetPopulation(&*_bestNetwork,_replayChampion);
+            if (!_replayChampion && _drivingMode==DrivingMode::Chrono) evolvePopulation(0);
+        }
         _imGuiLayer.setChampionPath(_championFile);
     }
     _editing=false;
 
 	_trainingSettings.paused = true;
 	_trainingSettings.showSimulation = true;
-	if (_replayChampion)
+	if (_replayChampion || fullRace)
 		_trainingSettings.accelerated = false;
 }
 
@@ -532,9 +581,16 @@ void Application::initOpenGL() {
 	glFrontFace(GL_CCW);
 }
 
-void Application::configureTraining(DrivingMode mode, const Network* seed) {
-    const std::optional<Network> transferred=(mode==DrivingMode::Race && seed)
-        ? std::optional<Network>{seed->expandedDrivingNetwork()} : std::nullopt;
+RaceSettings Application::raceSettings() const {
+    RaceSettings settings;
+    settings.cars=static_cast<std::size_t>(_trainingSettings.raceCars);
+    settings.laps=static_cast<std::size_t>(_trainingSettings.raceLaps);
+    return settings;
+}
+void Application::configureTraining(DrivingMode mode, const Network* seed, bool fullRace) {
+    fullRace=fullRace && mode==DrivingMode::Race;
+    const std::optional<Network> transferred=(mode==DrivingMode::Race && seed && (!fullRace || seed->topology().front()==23))
+        ? std::optional<Network>{fullRace ? *seed : seed->expandedDrivingNetwork()} : std::nullopt;
     std::optional<Network> champion;
     float bestTime=std::numeric_limits<float>::infinity();
     auto path=std::filesystem::path(_activeTrackFile);
@@ -556,14 +612,20 @@ void Application::configureTraining(DrivingMode mode, const Network* seed) {
     const Network* initial=champion ? &*champion : (transferred ? &*transferred : nullptr);
     // Construct race worlds before committing the mode; a rejected circuit keeps chrono usable.
     std::unique_ptr<RaceTraining> race;
-    if (mode==DrivingMode::Race) race=std::make_unique<RaceTraining>(_track,initial);
+    std::unique_ptr<RaceSession> session;
+    if (fullRace) {
+        if (!initial) throw IOError("Train overtaking first or load a _race.f1 traffic policy");
+        session=std::make_unique<RaceSession>(_track,*initial,raceSettings());
+    } else if (mode==DrivingMode::Race) race=std::make_unique<RaceTraining>(_track,initial);
     _drivingMode=mode; _trainingSettings.mode=mode;
     _bestNetwork=std::move(champion); _bestLapTime=bestTime;
     _championFile=path.string(); _replayChampion=false;
     _generation=1; _lastRaceScore={}; _followedAgent.reset();
-    _agents.clear(); _raceTraining=std::move(race);
+    _agents.clear(); _raceTraining=std::move(race); _raceSession=std::move(session);
+    _trainingSettings.fullRace=fullRace;
     if (mode==DrivingMode::Chrono) resetPopulation(_bestNetwork ? &*_bestNetwork : nullptr);
     _trainingSettings.paused=true;
+    if (fullRace) { _trainingSettings.showSimulation=true; _trainingSettings.accelerated=false; }
     _imGuiLayer.setChampionPath(_championFile);
 }
 void Application::stepRaceTraining(float dt) {
