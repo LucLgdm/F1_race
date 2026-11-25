@@ -101,12 +101,13 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
         settings.fullRace=mode==2;
         settings.paused=true;
     }
-    if (settings.fullRace) {
+    if (settings.mode==DrivingMode::Race) {
+        if (!settings.fullRace) ImGui::TextUnformatted("Prochaine course complete");
         ImGui::InputInt("Voitures", &settings.raceCars);
         ImGui::InputInt("Tours", &settings.raceLaps);
         settings.raceCars=std::clamp(settings.raceCars,2,20);
         settings.raceLaps=std::clamp(settings.raceLaps,1,20);
-        if (ImGui::Button("Nouvelle course")) settings.restartRace=true;
+        if (settings.fullRace && ImGui::Button("Nouvelle course")) settings.restartRace=true;
         ImGui::TextWrapped("Reglages appliques au prochain depart.");
     }
     ImGui::Checkbox("Pause", &settings.paused);

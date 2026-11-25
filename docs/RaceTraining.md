@@ -44,7 +44,9 @@ chemin `_race.f1` puis cliquer **Lancer une course avec ce reseau** ou
 ne possède pas les entrées de perception du trafic.
 
 Le départ comprend **8 voitures et 3 tours** par défaut. Les champs **Voitures**
-(2 à 20) et **Tours** (1 à 20) règlent la prochaine course. **Nouvelle course**
+(2 à 20) et **Tours** (1 à 20) règlent la prochaine course. Ces champs sont aussi
+accessibles depuis les exercices, pour réduire la grille avant de lancer une
+course sur un petit circuit. **Nouvelle course**
 reconstruit la grille et remet le chronomètre à zéro, en pause. Retirer la pause
 pour partir. Les voitures partagent initialement des copies identiques de la
 politique sélectionnée, sans mutation de leurs paramètres pendant la course.
