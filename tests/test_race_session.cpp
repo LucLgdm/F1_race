@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "ML/RaceSession.hpp"
+#include "Track/ChampionIO.hpp"
+#include <sstream>
 #include <limits>
 #include <numbers>
 
@@ -164,4 +166,28 @@ TEST_CASE("A clean shared-world overtake updates standings and the active leader
     REQUIRE(race.standings().front()==1); REQUIRE(race.cameraTarget(0)==1);
     REQUIRE(race.contacts()==0);
     REQUIRE_FALSE(carsOverlap(snapshotCar(race.car(0)),snapshotCar(race.car(1))));
+}
+
+TEST_CASE("A saved traffic policy uses a neighbour to pass in a full race", "[ml][race_session]") {
+    // Both cars drive straight in separate lanes. Seeing the neighbour to the
+    // left increases throttle, so only the car starting behind accelerates.
+    std::vector<float> throttle(23,0.0f);
+    throttle[10]=4.0f;
+    Network policy{{Layer{std::vector<Neuron>{
+        Neuron{std::vector<float>(23),0,Activation::Tanh},
+        Neuron{throttle,.7f,Activation::Tanh},
+        Neuron{std::vector<float>(23),0,Activation::Tanh}}}}};
+    const Track track{800,500,20};
+    std::stringstream file;
+    ChampionIO::write(file,track,policy,35.0f,DrivingMode::Race);
+    const auto saved=ChampionIO::read(file);
+    REQUIRE(saved.mode==DrivingMode::Race);
+    RaceSession race{saved.track,std::vector<Network>(2,saved.network),settings(),{{-6,3},{-18,-3}}};
+    REQUIRE(race.standings().front()==0);
+    for (int tick=0;tick<1200 && race.racePosition(1)<race.racePosition(0)+6;++tick)
+        race.step(1.0f/120);
+    REQUIRE(race.racePosition(1)>=race.racePosition(0)+6);
+    REQUIRE(race.activeCount()==2);
+    REQUIRE(race.contacts()==0);
+    REQUIRE(race.standings().front()==1);
 }

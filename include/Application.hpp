@@ -68,7 +68,7 @@ class Application {
         RaceScore _lastRaceScore{};
         void configureTraining(DrivingMode mode, const Network* seed = nullptr, bool fullRace = false,
                                bool freshFromChrono = false, const std::string& seedFile = {});
-        void switchTrafficActivity(const Network& policy, bool fullRace);
+        void switchTrafficActivity(bool fullRace);
         std::string _networkOrigin;
         bool _transferredChrono = false;
         RaceSettings raceSettings() const;

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include "ML/DrivingMode.hpp"
 #include "ML/RaceSession.hpp"
@@ -58,7 +59,7 @@ struct TrainingStats {
 
 	bool hasChampion = false;
 	float bestLapTime = 0.0f;
-    std::size_t raceSuccesses = 0;
+    std::optional<std::size_t> raceSuccesses;
     std::size_t carContacts = 0;
     std::size_t wallContacts = 0;
     std::size_t raceScenario = 0;

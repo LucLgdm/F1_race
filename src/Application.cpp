@@ -81,7 +81,8 @@ void Application::run() {
 				std::count_if(_agents.begin(), _agents.end(), [](const Agent& a) { return a.isActive(); }));
             if (_raceTraining) {
                 stats.activeAgents=_raceTraining->activeCount();
-                stats.raceSuccesses=_lastRaceScore.successes;
+                if (_generation>1 || _raceTraining->finished())
+                    stats.raceSuccesses=_lastRaceScore.successes;
                 stats.carContacts=_lastRaceScore.carContacts;
                 stats.wallContacts=_lastRaceScore.wallContacts;
                 const auto shown=_raceTraining->displayIndex();
@@ -117,12 +118,11 @@ void Application::run() {
             _imGuiLayer.render(_trainingSettings, stats);
             if (_trainingSettings.mode!=_drivingMode || _trainingSettings.fullRace!=static_cast<bool>(_raceSession)) {
                 try {
-                    std::optional<Network> seed=_bestNetwork;
-                    if (!seed && _raceTraining) seed=_raceTraining->network(0);
-                    if (_raceSession) seed=_raceSession->policy(0);
-                    if (_trainingSettings.mode==DrivingMode::Race && _drivingMode==DrivingMode::Race && seed)
-                        switchTrafficActivity(*seed,_trainingSettings.fullRace);
-                    else configureTraining(_trainingSettings.mode,seed ? &*seed : nullptr,_trainingSettings.fullRace,false,_networkOrigin);
+                    if (_trainingSettings.mode==DrivingMode::Race && _drivingMode==DrivingMode::Race)
+                        switchTrafficActivity(_trainingSettings.fullRace);
+                    else
+                        configureTraining(_trainingSettings.mode,_bestNetwork ? &*_bestNetwork : nullptr,
+                                          _trainingSettings.fullRace,false,_networkOrigin);
                     _imGuiLayer.setError("");
                 } catch (const std::exception& e) {
                     _trainingSettings.mode=_drivingMode;
@@ -511,7 +511,7 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
     const bool seedRace=request.mode==ChampionLoadMode::SeedRace;
     const bool fullRace=request.mode==ChampionLoadMode::StartFullRace;
     if (fullRace && saved.mode!=DrivingMode::Race)
-        throw IOError("Load a _race.f1 traffic policy to launch a full race");
+        throw IOError("Ce fichier contient un champion chrono. Choisis le fichier de depassement enregistre apres les 5 exercices.");
     if (fullRace) (void)RaceSession{saved.track,saved.network,raceSettings()};
     if (seedRace && saved.mode!=DrivingMode::Chrono)
         throw IOError("Select a chrono champion to seed course training");
@@ -613,14 +613,13 @@ void Application::configureTraining(DrivingMode mode, const Network* seed, bool 
     fullRace=fullRace && mode==DrivingMode::Race;
     auto prepared=prepareTrainingCheckpoint(_track,_activeTrackFile,mode,seed,seedFile,freshFromChrono);
     const Network* initial=prepared.initial ? &*prepared.initial : nullptr;
-    if (fullRace && prepared.transferredChrono)
-        throw IOError("Train overtaking first or load a _race.f1 traffic policy");
     // Construct race worlds before committing the mode; a rejected circuit keeps chrono usable.
     std::unique_ptr<RaceTraining> race;
     std::unique_ptr<RaceSession> session;
     if (fullRace) {
-        if (!initial) throw IOError("Train overtaking first or load a _race.f1 traffic policy");
-        session=std::make_unique<RaceSession>(_track,*initial,raceSettings());
+        if (!prepared.record)
+            throw IOError("Aucun champion de depassement pour ce circuit. Lance les exercices ou charge un champion de depassement.");
+        session=std::make_unique<RaceSession>(_track,*prepared.record,raceSettings());
     } else if (mode==DrivingMode::Race) race=std::make_unique<RaceTraining>(_track,initial);
     _drivingMode=mode; _trainingSettings.mode=mode;
     _bestNetwork=std::move(prepared.record); _bestLapTime=prepared.recordTime;
@@ -633,11 +632,13 @@ void Application::configureTraining(DrivingMode mode, const Network* seed, bool 
     _trainingSettings.paused=true;
     if (fullRace) { _trainingSettings.showSimulation=true; _trainingSettings.accelerated=false; }
 }
-void Application::switchTrafficActivity(const Network& policy, bool fullRace) {
+void Application::switchTrafficActivity(bool fullRace) {
+    if (!_bestNetwork)
+        throw IOError("Pour courir, termine les 5 exercices avec un meme candidat ou charge un champion de depassement.");
     std::unique_ptr<RaceTraining> training;
     std::unique_ptr<RaceSession> session;
-    if (fullRace) session=std::make_unique<RaceSession>(_track,policy,raceSettings());
-    else training=std::make_unique<RaceTraining>(_track,&policy);
+    if (fullRace) session=std::make_unique<RaceSession>(_track,*_bestNetwork,raceSettings());
+    else training=std::make_unique<RaceTraining>(_track,&*_bestNetwork);
     _raceTraining=std::move(training); _raceSession=std::move(session);
     _agents.clear(); _followedAgent.reset(); _generation=1; _lastRaceScore={};
     _trainingSettings.fullRace=fullRace; _trainingSettings.paused=true;
@@ -656,6 +657,7 @@ void Application::stepRaceTraining(float dt) {
         ChampionIO::write(output,_track,_raceTraining->network(best),_lastRaceScore.time,DrivingMode::Race);
         TrackIO::saveText(_championFile,output.str());
         _bestLapTime=_lastRaceScore.time; _bestNetwork=_raceTraining->network(best);
+        _networkOrigin=_championFile; _transferredChrono=false;
     }
     std::cout << "Course | Generation " << _generation << " | Reussites " << _lastRaceScore.successes
               << "/5 | Contacts voitures " << _lastRaceScore.carContacts

@@ -41,13 +41,17 @@ Aucun nombre de générations ne garantit la réussite.
 ## Course complète sur le circuit
 
 Après l'apprentissage des dépassements, choisir **Course complete** dans le menu.
-Depuis les exercices, le mode conserve le meilleur réseau enregistré de la session
-ou, à défaut de record, le réseau de travail à l'indice zéro (l'élite de la dernière
-génération achevée). Il ne recharge pas un ancien fichier de dépassement à ce moment.
-Depuis le chrono, il recherche un champion de dépassement compatible du circuit. Pour choisir un fichier précis, renseigner son
-chemin `_race.f1` puis cliquer **Lancer une course avec ce reseau** ou
-**Charger ce reseau pour la course**. Un champion chrono seul ne suffit pas : il
-ne possède pas les entrées de perception du trafic.
+Depuis les exercices, retirer la pause et attendre qu'un candidat réussisse les cinq
+essais. **Prochaine sauvegarde** indique où son réseau sera écrit. Dès le premier
+record, **Courir avec le champion actif** et le menu **Course complete** utilisent
+ce champion de dépassement. Le champ **Fichier a charger** peut garder le nom du
+chrono d'origine. Avant le premier record, le menu conserve la session d'exercices.
+Depuis le chrono, le menu recherche un champion de dépassement compatible du circuit.
+Pour lancer une course depuis un fichier déjà entraîné, saisir le chemin du
+champion de dépassement (y compris son éventuel suffixe numéroté) et cliquer
+**Courir avec le fichier indique**. Les cinq essais évaluent quatre dépassements
+face à un seul adversaire et la conduite en solo. Un départ en peloton reste une
+situation différente où le champion peut encore avoir un accident.
 
 Le départ comprend **8 voitures et 1 tour** par défaut. Les champs **Voitures**
 (2 à 20) et **Tours** (1 à 20) règlent la prochaine course. Ces champs sont aussi

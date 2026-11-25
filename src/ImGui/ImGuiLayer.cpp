@@ -143,9 +143,11 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 				static_cast<unsigned long long> (stats.populationSize));
 	
     if (settings.mode==DrivingMode::Race && !settings.fullRace) {
-        ImGui::Text("Meilleur bilan termine : %llu / 5", static_cast<unsigned long long>(stats.raceSuccesses));
-        ImGui::Text("Contacts voitures : %llu | piste : %llu",
-            static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
+        if (stats.raceSuccesses) {
+            ImGui::Text("Dernier bilan : %llu / 5", static_cast<unsigned long long>(*stats.raceSuccesses));
+            ImGui::Text("Contacts voitures : %llu | piste : %llu",
+                static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
+        } else ImGui::TextWrapped("Premiere evaluation en cours.");
         ImGui::Text("Essai affiche : %llu / 5",static_cast<unsigned long long>(stats.raceScenario+1));
         ImGui::Text("Rouge : apprenant %.1f km/h",stats.speedKmh);
         if (stats.hasSlowOpponent) ImGui::Text("Bleue : adversaire lent %.1f km/h",stats.opponentSpeedKmh);
@@ -168,7 +170,19 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
         ImGui::TextWrapped("Reseau actif : %s",shape.c_str());
     }
     if (!stats.networkOrigin.empty()) ImGui::TextWrapped("Origine du reseau : %s",stats.networkOrigin.c_str());
-    if (!stats.checkpointPath.empty()) ImGui::TextWrapped("Sauvegarde des progres : %s",stats.checkpointPath.c_str());
+    if (!stats.checkpointPath.empty())
+        ImGui::TextWrapped("%s : %s", stats.hasChampion ? "Champion enregistre" : "Prochaine sauvegarde",stats.checkpointPath.c_str());
+    if (settings.mode==DrivingMode::Race && !settings.fullRace) {
+        if (stats.hasChampion) {
+            if (ImGui::Button("Courir avec le champion actif")) {
+                settings.fullRace=true;
+                settings.paused=true;
+            }
+        } else {
+            ImGui::TextWrapped("Le champion sera pret pour la course quand un candidat aura reussi les 5 exercices.");
+            if (settings.paused) ImGui::TextWrapped("Decoche Pause pour entrainer les voitures.");
+        }
+    }
     ImGui::InputText("Fichier a charger", _championPath, sizeof(_championPath));
     if (!settings.fullRace) {
         if (ImGui::Button("Reprendre l entrainement"))
@@ -178,7 +192,7 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
         if (ImGui::Button("Course depuis un champion chrono"))
             _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::SeedRace};
     }
-    if (ImGui::Button(settings.fullRace ? "Charger ce reseau pour la course" : "Lancer une course avec ce reseau"))
+    if (ImGui::Button("Courir avec le fichier indique"))
         _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::StartFullRace};
 
     if (!_errorMessage.empty())
