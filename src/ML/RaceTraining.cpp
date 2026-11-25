@@ -58,6 +58,7 @@ void RaceEpisode::advance(const CarControls& controls, float dt) {
     if (!std::isfinite(dt) || dt<=0.0f || dt>1.0f/120.0f+1e-6f)
         throw carError("Race episode requires a positive timestep no greater than 1/120 s");
     if (_end!=RaceEnd::Running) return;
+    _lastControls=controls;
     const auto before=snapshotCar(car());
     Simulation predicted=_simulation;
     const bool wall=predicted.step(controls,dt);
@@ -149,4 +150,9 @@ void RaceTraining::evolve(std::mt19937& rng) {
         }
     }
     resetEpisodes();
+}
+
+std::size_t RaceTraining::displayIndex() const {
+    for (std::size_t i=0;i<size();++i) if (_scenarioIndices[i]<_scenarios.size()) return i;
+    return bestIndex();
 }

@@ -91,7 +91,7 @@ The main components and test files introduced so far are shown below. Utility he
 | Neural network | `ML/Activation.hpp`, `Loss.hpp`, `Neuron.hpp/.cpp`, `Layer.hpp/.cpp`, `Network.hpp/.cpp`, `Selection.hpp` |
 | Rendering | `Renderer.hpp/.cpp`, `shaders/vertex.glsl`, `shaders/fragment.glsl`, `src/glad.c`, GLAD/GLM/KHR headers |
 | Tests | `test_loss.cpp`, `test_neuron.cpp`, `test_track.cpp`, `test_progress.cpp`, `test_selection.cpp`, `test_mutation.cpp`, `test_lap.cpp`, `test_champion_io.cpp` |
-| Supporting files | `Exception.hpp`, `CMakeLists.txt`, `README.md`, `note.txt`, and the ML demonstration file `testML.cpp` |
+| Supporting files | `Exception.hpp`, `CMakeLists.txt`, `README.md`, `note.txt` |
 | Runtime output | `circuits/rectangle.f1`: circuit and champion bundle, created/updated on a new lap record |
 
 ## Architecture

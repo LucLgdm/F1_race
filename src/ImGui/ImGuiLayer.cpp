@@ -91,7 +91,7 @@ void ImGuiLayer::shutdown() {
  * **********************************************************************/
 void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) {
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(panelWidth, std::min(settings.fullRace ? 800.0f : 620.0f, ImGui::GetIO().DisplaySize.y)));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, std::min(settings.mode==DrivingMode::Race ? 940.0f : 740.0f, ImGui::GetIO().DisplaySize.y)));
 	ImGui::Begin("Entrainement");
 
 	if (ImGui::Button("Editeur de circuit")) _editorRequest = true;
@@ -147,15 +147,29 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
         ImGui::Text("Contacts voitures : %llu | piste : %llu",
             static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
         ImGui::Text("Essai affiche : %llu / 5",static_cast<unsigned long long>(stats.raceScenario+1));
+        ImGui::Text("Rouge : apprenant %.1f km/h",stats.speedKmh);
+        if (stats.hasSlowOpponent) ImGui::Text("Bleue : adversaire lent %.1f km/h",stats.opponentSpeedKmh);
+        ImGui::Text("Accelerateur %.0f %% | frein %.0f %%",stats.controls.throttle*100,stats.controls.brake*100);
         ImGui::TextWrapped("Chaque candidat roule dans son propre exercice face a une voiture lente.");
     }
     if (stats.hasChampion)
         ImGui::Text(settings.mode==DrivingMode::Race ? "Record exercices : %.3f s" : "Record : %.3f s", stats.bestLapTime);
 	else
-		ImGui::TextUnformatted(settings.fullRace ? "Reseau de travail non sauvegarde" : "Aucun champion");
+		ImGui::TextUnformatted(stats.transferredChrono ? "Champion chrono repris - apprentissage" :
+            (settings.mode==DrivingMode::Race ? "Reseau de travail - aucun record valide" : "Aucun champion"));
 	
 	ImGui::Separator();
-	ImGui::InputText("Fichier Champion", _championPath, sizeof(_championPath));
+    if (!stats.networkShape.empty()) {
+        std::string shape;
+        for (const auto width : stats.networkShape) {
+            if (!shape.empty()) shape+=" -> ";
+            shape+=std::to_string(width);
+        }
+        ImGui::TextWrapped("Reseau actif : %s",shape.c_str());
+    }
+    if (!stats.networkOrigin.empty()) ImGui::TextWrapped("Origine du reseau : %s",stats.networkOrigin.c_str());
+    if (!stats.checkpointPath.empty()) ImGui::TextWrapped("Sauvegarde des progres : %s",stats.checkpointPath.c_str());
+    ImGui::InputText("Fichier a charger", _championPath, sizeof(_championPath));
     if (!settings.fullRace) {
         if (ImGui::Button("Reprendre l entrainement"))
             _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::ResumeTraining};

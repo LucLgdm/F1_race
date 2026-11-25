@@ -19,7 +19,7 @@ struct TrainingSettings {
     bool fullRace = false;
     bool restartRace = false;
     int raceCars = 8;
-    int raceLaps = 3;
+    int raceLaps = 1;
 	bool paused = true;
 	bool showSimulation = true;
 	bool accelerated = false;
@@ -64,8 +64,16 @@ struct TrainingStats {
     std::size_t raceScenario = 0;
     float raceElapsed = 0.0f;
     bool raceFinished = false;
-    std::size_t raceLapTarget = 3;
+    std::size_t raceLapTarget = 1;
     std::vector<RaceStanding> standings;
+    std::string networkOrigin;
+    std::string checkpointPath;
+    std::vector<std::size_t> networkShape;
+    bool transferredChrono = false;
+    float speedKmh = 0.0f;
+    bool hasSlowOpponent = false;
+    float opponentSpeedKmh = 0.0f;
+    CarControls controls{};
 };
 
 

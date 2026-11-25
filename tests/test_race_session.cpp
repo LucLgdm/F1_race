@@ -41,7 +41,7 @@ TEST_CASE("A full race starts behind the line with separate traffic-aware cars",
     const Track track{800,500,20}; const auto policy=quietPolicy();
     RaceSession race{track,policy};
     REQUIRE(race.size()==8); REQUIRE(race.activeCount()==8); REQUIRE_FALSE(race.finished());
-    REQUIRE(race.targetLaps()==3);
+    REQUIRE(race.targetLaps()==1);
     REQUIRE(race.standings().front()==0); REQUIRE(race.cameraTarget()==0);
     for (std::size_t i=0;i<race.size();++i) {
         REQUIRE(race.racePosition(i)<0); REQUIRE(race.lapCount(i)==0);

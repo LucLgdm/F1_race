@@ -22,10 +22,10 @@ add_executable(F1_race
 	src/ML/Neuron.cpp
 	src/ML/Layer.cpp
 	src/ML/Network.cpp
-	src/ML/testML.cpp
 	src/ML/Agent.cpp
 	src/ML/RaceObservation.cpp
 	src/ML/RaceTraining.cpp
+	src/ML/TrainingCheckpoint.cpp
 	src/ML/RaceSession.cpp
 	src/Track/CarCollision.cpp
 	src/ML/ProgressTracker.cpp
@@ -78,6 +78,7 @@ if(BUILD_TESTING)
 		tests/test_champion_io.cpp
         tests/test_race.cpp
         tests/test_race_session.cpp
+        tests/test_training_checkpoint.cpp
 		tests/test_track_editor.cpp
 		tests/test_training_camera.cpp
 		tests/test_track_scenery.cpp
@@ -95,6 +96,7 @@ if(BUILD_TESTING)
 		src/ML/Agent.cpp
 		src/ML/RaceObservation.cpp
 		src/ML/RaceTraining.cpp
+		src/ML/TrainingCheckpoint.cpp
 		src/ML/RaceSession.cpp
 		src/Track/CarCollision.cpp
 		src/Track/Track.cpp
@@ -166,6 +168,7 @@ if(BUILD_BENCHMARKS)
 		src/ML/Agent.cpp
 		src/ML/RaceObservation.cpp
 		src/ML/RaceTraining.cpp
+		src/ML/TrainingCheckpoint.cpp
 		src/ML/RaceSession.cpp
 		src/Track/CarCollision.cpp
 		src/ML/Network.cpp

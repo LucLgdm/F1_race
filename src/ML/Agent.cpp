@@ -52,7 +52,7 @@ void Agent::advance(const CarControls& controls, float dt) {
 	_progress.update(_simulation.location().coordinate, dt);
 	_elapsedTime += dt;
 	if (collided || _elapsedTime >= _maxDuration || _progress.hasStalled(_maxTimeWithoutProgress)
-		|| _simulation.lapCount() >= 5)
+		|| _simulation.lapCount() >= 1)
 		_active = false;
 }
 

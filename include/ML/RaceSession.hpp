@@ -11,7 +11,7 @@
 
 struct RaceSettings {
     std::size_t cars = 8;
-    std::size_t laps = 3;
+    std::size_t laps = 1;
     float maxDuration = 0.0f; // zero: computed from circuit length and lap target
     float stalledAfter = 10.0f;
 };

@@ -38,6 +38,7 @@ public:
     [[nodiscard]] std::optional<CarSnapshot> opponent() const;
     [[nodiscard]] RaceEnd end() const { return _end; }
     [[nodiscard]] float elapsed() const { return _elapsed; }
+    [[nodiscard]] CarControls lastControls() const { return _lastControls; }
     [[nodiscard]] float progress() const;
 private:
     const Track& _track;
@@ -47,6 +48,7 @@ private:
     float _elapsed = 0.0f;
     float _aheadTime = 0.0f;
     RaceEnd _end = RaceEnd::Running;
+    CarControls _lastControls{};
     [[nodiscard]] CarSnapshot opponentAt(float time) const;
 };
 
@@ -59,6 +61,7 @@ public:
     void step(float dt);
     [[nodiscard]] bool finished() const;
     [[nodiscard]] std::size_t bestIndex() const;
+    [[nodiscard]] std::size_t displayIndex() const;
     [[nodiscard]] std::size_t activeCount() const;
     [[nodiscard]] const RaceEpisode& episode(std::size_t i) const { return *_episodes.at(i); }
     [[nodiscard]] const Network& network(std::size_t i) const { return _networks.at(i); }

@@ -6,13 +6,18 @@
 2. Dans le panneau **Entrainement**, choisir **Course - depassement**.
    Si un champion chrono du circuit est déjà chargé, il sert de point de départ
    lorsqu'aucun champion course compatible n'existe encore.
-3. Pour choisir explicitement un ancien champion, renseigner son fichier `.f1`,
-   puis cliquer **Course depuis un champion chrono**.
+3. Pour partir explicitement d'un champion chrono, renseigner son fichier `.f1`,
+   puis cliquer **Course depuis un champion chrono**. Ce bouton utilise toujours
+   le fichier choisi, même si un ancien champion de dépassement existe déjà.
+   Pour reprendre un apprentissage de dépassement existant, choisir son `_race.f1`
+   et cliquer **Reprendre l entrainement**.
 4. Retirer la pause. Le mode accéléré conserve le pas physique de 1/120 s.
 5. Pour observer un champion course enregistré, sélectionner son fichier
    `_race.f1`, puis **Voir le champion**, et retirer la pause.
 
 Le mode chrono conserve les réseaux 8 → 16 → 16 → 3 et les voitures indépendantes.
+L'entraînement chrono s'arrête au premier tour validé. Le réglage de course est
+également remis à un tour par défaut, et reste modifiable.
 Le mode course utilise 23 → 32 → 32 → 3. Il affiche un seul candidat et sa voiture
 lente à la fois : les vingt candidats sont évalués dans des mondes distincts.
 Le mode **Course complete** réunit les voitures dans un seul peloton.
@@ -36,14 +41,15 @@ Aucun nombre de générations ne garantit la réussite.
 ## Course complète sur le circuit
 
 Après l'apprentissage des dépassements, choisir **Course complete** dans le menu.
-Le mode reprend le champion de dépassement compatible du circuit ou, en l'absence
-de sauvegarde, le réseau de travail conservé à l'indice zéro des exercices (l'élite
-de la dernière génération achevée). Pour choisir un fichier précis, renseigner son
+Depuis les exercices, le mode conserve le meilleur réseau enregistré de la session
+ou, à défaut de record, le réseau de travail à l'indice zéro (l'élite de la dernière
+génération achevée). Il ne recharge pas un ancien fichier de dépassement à ce moment.
+Depuis le chrono, il recherche un champion de dépassement compatible du circuit. Pour choisir un fichier précis, renseigner son
 chemin `_race.f1` puis cliquer **Lancer une course avec ce reseau** ou
 **Charger ce reseau pour la course**. Un champion chrono seul ne suffit pas : il
 ne possède pas les entrées de perception du trafic.
 
-Le départ comprend **8 voitures et 3 tours** par défaut. Les champs **Voitures**
+Le départ comprend **8 voitures et 1 tour** par défaut. Les champs **Voitures**
 (2 à 20) et **Tours** (1 à 20) règlent la prochaine course. Ces champs sont aussi
 accessibles depuis les exercices, pour réduire la grille avant de lancer une
 course sur un petit circuit. **Nouvelle course**
@@ -81,6 +87,22 @@ des exercices. Réussir les exercices ne garantit pas une course propre face à
 plusieurs voitures. Les fichiers `.track` et `.f1` restent inchangés pour cette étape.
 Les simulations indépendantes et les espaces de travail par voiture préparent
 une exécution parallèle ; la résolution des collisions reste une barrière commune.
+
+## Vérifier le réseau et la vitesse affichés
+
+Le champ **Fichier a charger** reste le fichier choisi. **Origine du reseau** et
+**Sauvegarde des progres** sont affichés séparément. **Reseau actif** donne les
+vraies dimensions de la politique utilisée : le fichier chrono peut toujours
+contenir 16 neurones par couche cachée alors que sa copie de dépassement en a 32.
+La conversion n'écrit pas dans le fichier chrono ; le nouveau `_race` est créé
+seulement après la réussite des cinq exercices.
+
+Dans les exercices, la voiture rouge est l'apprenant, avec sa vitesse réelle en
+km/h et ses commandes d'accélérateur et de frein. La voiture bleue est l'adversaire
+volontairement lent (8 à 12 m/s de progression sur la piste). Le panneau et la caméra
+utilisent le même candidat, même quand certains candidats ont terminé plus tôt.
+Le transfert de 16 à 32 neurones conserve les commandes initiales et la dynamique ;
+il ne réduit pas la puissance du moteur ou la vitesse maximale.
 
 ## Observations et réseau
 
@@ -136,7 +158,9 @@ sur la suite. La sauvegarde automatique n'a lieu qu'après cinq réussites.
 Exemple : `Le_Mans.f1` pour le chrono, `Le_Mans_race.f1` pour les dépassements.
 Un fichier existant associé à une autre géométrie ou illisible est conservé ; une
 variante numérotée est choisie. Les anciens champions ne sont pas réécrits lors du
-transfert. Les sauvegardes restent des champions, pas des checkpoints de population.
+transfert. Un nouveau départ explicite depuis `Le_Mans.f1` ignore les anciens
+champions course et choisit un nom libre : `Le_Mans_race.f1`, puis
+`Le_Mans_race_2.f1`, etc. Il ne remplace pas les sauvegardes existantes. Les sauvegardes restent des champions, pas des checkpoints de population.
 
 ## Préparation CPU / GPU
 
@@ -173,3 +197,8 @@ du peloton, un dépassement avec changement de leader, les contacts simultanés 
 les réactions en chaîne après rejet d'un déplacement. Ils vérifient aussi deux
 tours complets sur un circuit arrondi, l'ordre d'arrivée, les abandons, les limites
 de course et l'absence de modification des réseaux pendant la course.
+
+Les tests de chargement vérifient qu'un nouveau départ depuis un chrono ignore
+un ancien réseau course lent, préserve les deux fichiers existants et conserve
+les commandes, les positions et les vitesses après transfert vers 32 neurones.
+Un essai complet vérifie l'arrêt de l'entraînement chrono après un seul tour.
