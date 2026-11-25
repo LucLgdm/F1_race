@@ -40,4 +40,5 @@ class Neuron {
 		float _bias;
 		Activation _activation;
 	friend class ChampionIO;
+	friend class Network;
 };

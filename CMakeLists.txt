@@ -24,6 +24,9 @@ add_executable(F1_race
 	src/ML/Network.cpp
 	src/ML/testML.cpp
 	src/ML/Agent.cpp
+	src/ML/RaceObservation.cpp
+	src/ML/RaceTraining.cpp
+	src/Track/CarCollision.cpp
 	src/ML/ProgressTracker.cpp
 	src/ImGui/ImGuiLayer.cpp
 )
@@ -72,6 +75,7 @@ if(BUILD_TESTING)
 		tests/test_mutation.cpp
 		tests/test_lap.cpp
 		tests/test_champion_io.cpp
+        tests/test_race.cpp
 		tests/test_track_editor.cpp
 		tests/test_training_camera.cpp
 		tests/test_track_scenery.cpp
@@ -87,6 +91,9 @@ if(BUILD_TESTING)
 		src/ML/Network.cpp
 		src/ML/ProgressTracker.cpp
 		src/ML/Agent.cpp
+		src/ML/RaceObservation.cpp
+		src/ML/RaceTraining.cpp
+		src/Track/CarCollision.cpp
 		src/Track/Track.cpp
 		src/Track/Bvh2D.cpp
 		src/Track/TrackScenery.cpp
@@ -105,7 +112,12 @@ if(BUILD_TESTING)
 	target_link_libraries(F1_tests PRIVATE Catch2::Catch2WithMain)
 
 	include(Catch)
-	catch_discover_tests(F1_tests ADD_TAGS_AS_LABELS)
+	# Explicit groups also work with Catch2 3.7, which silently ignores ADD_TAGS_AS_LABELS.
+    # Register each test once; persistence belongs to the ML branch checks too.
+    catch_discover_tests(F1_tests TEST_SPEC "[ml],[champion]" PROPERTIES LABELS ml)
+    catch_discover_tests(F1_tests TEST_SPEC "[editor]~[ml]~[champion]" PROPERTIES LABELS editor)
+    catch_discover_tests(F1_tests TEST_SPEC "[track]~[ml]~[champion]~[editor]" PROPERTIES LABELS track)
+    catch_discover_tests(F1_tests TEST_SPEC "~[ml]~[champion]~[editor]~[track]")
 	
 	# Code Coverage
 	option(ENABLE_COVERAGE "Enable code coverage" OFF)
@@ -149,6 +161,9 @@ if(BUILD_BENCHMARKS)
 		src/Track/LapCounter.cpp
 		src/Simulation.cpp
 		src/ML/Agent.cpp
+		src/ML/RaceObservation.cpp
+		src/ML/RaceTraining.cpp
+		src/Track/CarCollision.cpp
 		src/ML/Network.cpp
 		src/ML/Layer.cpp
 		src/ML/Neuron.cpp

@@ -24,6 +24,7 @@ class Simulation {
 		bool step(const CarControls& controls, float dt);
 
 		void reset();
+        void acceptState(const Simulation& predicted);
 		[[nodiscard]] const TrackLocation& location() const noexcept { return _location; }
 		[[nodiscard]] const Car& car() const noexcept;
 		[[nodiscard]] CarObservation observe() const;

@@ -8,6 +8,7 @@
 /* ****************************************** */
 
 #include "Renderer.hpp"
+#include "Track/VehicleGeometry.hpp"
 #include "Track/CarSensors.hpp"
 #include <numbers>
 #include <cstddef>
@@ -38,11 +39,8 @@ void Renderer::initialize() {
 	// Coordonnées locales en mètres.
 	// Longueur : 4 m sur X ; largeur : 2 m sur Y.
 	// L'avant de la voiture pointe vers +X.
-	constexpr float vertices[] = {// Premier triangle
-								  -2.0f, -1.0f, 2.0f, -1.0f, 2.0f, 1.0f,
-
-								  // Deuxième triangle
-								  -2.0f, -1.0f, 2.0f, 1.0f, -2.0f, 1.0f};
+    constexpr float x=VehicleGeometry::bodyHalfLength, y=VehicleGeometry::bodyHalfWidth;
+    constexpr float vertices[]={-x,-y,x,-y,x,y,-x,-y,x,y,-x,y};
 
 	glGenVertexArrays(1, &_carVAO);
 	glGenBuffers(1, &_carVBO);
@@ -181,10 +179,10 @@ void Renderer::drawCar(const Car& car) {
 
 	// Wheels position
 	const glm::vec3 wheelPositions[] = {
-		glm::vec3{1.2f, 1.1f, 0.0f},  // Front Left
-		glm::vec3{1.2f, -1.1f, 0.0f}, // Front Right
-		glm::vec3{-1.2f, 1.1f, 0.0f}, // Rear Left
-		glm::vec3{-1.2f, -1.1f, 0.0f} // Rear Right
+		glm::vec3{VehicleGeometry::wheelLongitudinal, VehicleGeometry::wheelLateral, 0.0f},  // Front Left
+		glm::vec3{VehicleGeometry::wheelLongitudinal, -VehicleGeometry::wheelLateral, 0.0f}, // Front Right
+		glm::vec3{-VehicleGeometry::wheelLongitudinal, VehicleGeometry::wheelLateral, 0.0f}, // Rear Left
+		glm::vec3{-VehicleGeometry::wheelLongitudinal, -VehicleGeometry::wheelLateral, 0.0f} // Rear Right
 	};
 	glUniform3f(colorLocation, 0.02f, 0.02f, 0.02f); // Dark color for wheels
 
@@ -196,7 +194,7 @@ void Renderer::drawCar(const Car& car) {
 		}
 
 		// Scale down the wheels to be smaller than the car body
-		wheelModel = glm::scale(wheelModel, glm::vec3{0.2f, 0.2f, 1.0f});
+		wheelModel = glm::scale(wheelModel, glm::vec3{VehicleGeometry::wheelScale, VehicleGeometry::wheelScale, 1.0f});
 
 		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(wheelModel));
 		glDrawArrays(GL_TRIANGLES, 0, 6);

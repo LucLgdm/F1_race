@@ -81,3 +81,9 @@ float Simulation::lastLapTime() const noexcept {
 bool Simulation::trackFinished() const noexcept {
 	return _trackFinished;
 }
+void Simulation::acceptState(const Simulation& other) {
+    if (&_track!=&other._track) throw carError("Cannot commit a simulation from another track");
+    _car=other._car; _location=other._location; _lapCounter=other._lapCounter;
+    _lapCount=other._lapCount; _timePerTrack=other._timePerTrack;
+    _lastLapTime=other._lastLapTime; _trackFinished=other._trackFinished;
+}

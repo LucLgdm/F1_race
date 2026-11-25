@@ -9,6 +9,7 @@
 
 #include "Track/ChampionIO.hpp"
 #include "Track/TrackIO.hpp"
+#include "Track/VehicleGeometry.hpp"
 
 namespace {
 	const char* activationName(Activation activation) {
@@ -57,7 +58,10 @@ namespace {
 	}
 }
 
-void ChampionIO::write(std::ostream& output, const Track& track, const Network& network, float lapTime) {
+void ChampionIO::write(std::ostream& output, const Track& track, const Network& network, float lapTime, DrivingMode mode) {
+    const auto topology=network.topology();
+    if (topology.front()!=drivingInputCount(mode) || topology.back()!=3)
+        throw IOError("Network dimensions do not match driving mode");
 	if (!std::isfinite(lapTime) || lapTime <= 0.0f)
 		throw IOError("Invalid champion lap time");
 	
@@ -66,10 +70,16 @@ void ChampionIO::write(std::ostream& output, const Track& track, const Network& 
 
 	if (!track.issues().empty())
 		throw IOError("Cannot save a champion on an invalid track");
-	output << "F1_CHAMPION 2\n";
+	output << (mode==DrivingMode::Chrono ? "F1_CHAMPION 2\n" : "F1_CHAMPION 3\n");
 	TrackIO::write(output, track);
 
-	output << "OBSERVATIONS 1 40 50" << std::endl;
+	if (mode==DrivingMode::Race) {
+        output << "MODE Race\n";
+        output << "FOOTPRINT " << VehicleGeometry::collisionHalfLength << ' '
+               << VehicleGeometry::collisionHalfWidth << '\n';
+        output << "EVALUATION 1\n";
+    }
+    output << (mode==DrivingMode::Race ? "OBSERVATIONS 2 40 50" : "OBSERVATIONS 1 40 50") << std::endl;
 	output << "CONTROLS 1" << std::endl;
 
 	output << "LAP_TIME " << lapTime << std::endl;
@@ -101,11 +111,11 @@ SavedChampion ChampionIO::read(std::istream& input) {
 
 	expect(input, "F1_CHAMPION");
 	int version;
-	if (!(input >> version) || (version != 1 && version != 2))
+	if (!(input >> version) || (version != 1 && version != 2 && version != 3))
 		throw IOError("Unsupported champion format");
 
 	Track track = [&]() {
-		if (version == 2) return TrackIO::read(input);
+		if (version >= 2) return TrackIO::read(input);
 		expect(input, "RECTANGLE");
 		const float width = readFloat(input);
 		const float height = readFloat(input);
@@ -115,13 +125,24 @@ SavedChampion ChampionIO::read(std::istream& input) {
 	}();
 	if (!track.issues().empty()) throw IOError("Saved champion track is not playable");
 
-	expect(input, "OBSERVATIONS");
+    DrivingMode mode=DrivingMode::Chrono;
+    if (version==3) {
+        expect(input,"MODE"); expect(input,"Race"); mode=DrivingMode::Race;
+        expect(input,"FOOTPRINT");
+        const float halfLength=readFloat(input), halfWidth=readFloat(input);
+        if (halfLength!=VehicleGeometry::collisionHalfLength || halfWidth!=VehicleGeometry::collisionHalfWidth)
+            throw IOError("Incompatible saved vehicle footprint");
+        expect(input,"EVALUATION");
+        int evaluation;
+        if (!(input>>evaluation) || evaluation!=1) throw IOError("Incompatible race evaluation suite");
+    }
+    expect(input, "OBSERVATIONS");
 	int observationVersion;
 	if (!(input >> observationVersion))
 		throw IOError("Missing observation version");
 	const float sensorRange = readFloat(input);
 	const float maxSpeed = readFloat(input);
-	if (observationVersion != 1 || sensorRange != 40.0f || maxSpeed != 50.0f)
+	if (observationVersion != (mode==DrivingMode::Race ? 2 : 1) || sensorRange != 40.0f || maxSpeed != 50.0f)
 		throw IOError("Incompatible observation configuration");
 
 	expect(input, "CONTROLS");
@@ -139,7 +160,7 @@ SavedChampion ChampionIO::read(std::istream& input) {
 	std::vector<Layer> layers;
 	layers.reserve(layerCount);
 
-	std::size_t expectedInputs = 8;
+	std::size_t expectedInputs = drivingInputCount(mode);
 	std::size_t parameterCount = 0;
 
 	for (std::size_t l = 0; l < layerCount; ++l) {
@@ -185,5 +206,5 @@ SavedChampion ChampionIO::read(std::istream& input) {
 	if (!input.eof())
 		throw IOError("Unexpected data after champion");
 
-	return SavedChampion{std::move(track), Network{std::move(layers)}, lapTime};
+	return SavedChampion{std::move(track), Network{std::move(layers)}, lapTime, mode};
 }

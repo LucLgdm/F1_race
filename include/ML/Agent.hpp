@@ -25,6 +25,8 @@ class Agent {
 			std::optional<float> startingRaceCoordinate = {});
 
 		void step(float dt);
+        [[nodiscard]] CarControls decide() const;
+        void advance(const CarControls& controls, float dt);
 		void reset();
 
 		[[nodiscard]] const Car& car() const noexcept;

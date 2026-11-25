@@ -76,12 +76,31 @@ void Application::run() {
 		} else {
 			TrainingStats stats;
 			stats.generation = _generation;
-			stats.populationSize = _agents.size();
+			stats.populationSize = _raceTraining ? _raceTraining->size() : _agents.size();
 			stats.activeAgents = static_cast<std::size_t>(
 				std::count_if(_agents.begin(), _agents.end(), [](const Agent& a) { return a.isActive(); }));
-			stats.hasChampion = _bestNetwork.has_value();
+            if (_raceTraining) {
+                stats.activeAgents=_raceTraining->activeCount();
+                stats.raceSuccesses=_lastRaceScore.successes;
+                stats.carContacts=_lastRaceScore.carContacts;
+                stats.wallContacts=_lastRaceScore.wallContacts;
+                stats.raceScenario=std::min(_raceTraining->scenarioIndex(0),_raceTraining->scenarioCount()-1);
+            }
+            stats.hasChampion = _bestNetwork.has_value();
 			stats.bestLapTime = stats.hasChampion ? _bestLapTime : 0;
-			_imGuiLayer.render(_trainingSettings, stats);
+            _imGuiLayer.render(_trainingSettings, stats);
+            if (_trainingSettings.mode!=_drivingMode) {
+                try {
+                    const auto seed=_drivingMode==DrivingMode::Chrono ? _bestNetwork : std::optional<Network>{};
+                    configureTraining(_trainingSettings.mode,seed ? &*seed : nullptr);
+                    _imGuiLayer.setError("");
+                } catch (const std::exception& e) {
+                    _trainingSettings.mode=_drivingMode;
+                    _trainingSettings.paused=true;
+                    _imGuiLayer.setError(e.what());
+                }
+                accumulator=0.0;
+            }
 			cameraPanelRight = _imGuiLayer.panelRight();
 			if (_imGuiLayer.takeEditorRequest()) {
 				_editor.setTrack(_track, _activeTrackFile);
@@ -189,7 +208,18 @@ void Application::run() {
 				_renderer.drawCar(_manual->car());
 				if (_showSensors)
 					_renderer.drawSensors(_manual->car(), _track);
-			} else if (_trainingSettings.showSimulation && !_agents.empty()) {
+            } else if (_trainingSettings.showSimulation && _raceTraining) {
+                // One isolated candidate world at a time; overlaying worlds would imply false collisions.
+                std::size_t shown=0;
+                for (std::size_t i=0;i<_raceTraining->size();++i)
+                    if (_raceTraining->scenarioIndex(i)<_raceTraining->scenarioCount()) { shown=i; break; }
+                const auto& episode=_raceTraining->episode(shown);
+                beginCameraFrame(episode.car().position());
+                _renderer.drawTrack(_track);
+                _renderer.drawCar(episode.car());
+                if (const auto opponent=episode.opponent())
+                    _renderer.drawCar(Car{opponent->position,opponent->heading});
+            } else if (_trainingSettings.showSimulation && !_agents.empty()) {
 				_followedAgent = selectTrainingCameraTarget(_agents, _followedAgent);
 				beginCameraFrame(_agents[*_followedAgent].car().position());
 				_renderer.drawTrack(_track);
@@ -203,6 +233,13 @@ void Application::run() {
 }
 
 void Application::resetPopulation(const Network* network, bool replay) {
+    if (_drivingMode==DrivingMode::Race) {
+        auto training=std::make_unique<RaceTraining>(_track,network,replay ? 1 : 20);
+        _agents.clear(); _followedAgent.reset();
+        _raceTraining=std::move(training);
+        return;
+    }
+    _raceTraining.reset();
 	constexpr float distanceBeforeLine = 6.0f;
 	constexpr float stagger = 6.0f;
 	constexpr float carRadius = 2.3f;
@@ -260,6 +297,7 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 	_followedAgent.reset();
 	_agents.clear();
 	_manual.reset();
+	_raceTraining.reset();
 	_track = std::move(request.track);
 	_renderer.invalidateTrack();
 	_activeTrackFile = request.path;
@@ -269,33 +307,8 @@ void Application::useEditorTrack(TrackEditorRequest request) {
 	_generation = 1;
 	if (request.manual)
 		_manual.emplace(_track, _track.startPosition());
-	else {
-		// Keep records for another geometry intact. Reuse a matching champion
-		// only when its serialized track is exactly the currently edited one.
-		std::filesystem::path path = request.path;
-		path.replace_extension(".f1");
-		const auto stem = path.stem().string();
-		int suffix = 1;
-		while (std::filesystem::exists(path)) {
-			try {
-				std::ifstream input{path};
-				auto saved = ChampionIO::read(input);
-				std::ostringstream a, b;
-				TrackIO::write(a, _track);
-				TrackIO::write(b, saved.track);
-				if (a.str() == b.str()) {
-					_bestNetwork = std::move(saved.network);
-					_bestLapTime = saved.lapTime;
-					break;
-				}
-			} catch (const std::exception&) { /* preserve unreadable files too */
-			}
-			path = std::filesystem::path(request.path).parent_path() /
-				   (stem + "_" + std::to_string(++suffix) + ".f1");
-		}
-		_championFile = path.string();
-		resetPopulation(_bestNetwork ? &*_bestNetwork : nullptr);
-	}
+	else configureTraining(_trainingSettings.mode);
+
 	_trainingSettings.paused = true;
 	_trainingSettings.showSimulation = true;
 	_trainingSettings.accelerated = false;
@@ -349,12 +362,16 @@ void Application::evolvePopulation(std::size_t bestIndex) {
 }
 
 void Application::stepTraining(float dt) {
+    if (_raceTraining) { stepRaceTraining(dt); return; }
+    _commands.resize(_agents.size());
+    for (std::size_t i=0;i<_agents.size();++i)
+        if (_agents[i].isActive()) _commands[i]=_agents[i].decide();
 	for (std::size_t i = 0; i < _agents.size(); ++i) {
 		Agent& agent = _agents[i];
 		if (!agent.isActive())
 			continue;
 
-		agent.step(dt);
+		agent.advance(_commands[i],dt);
 
 		// if (agent.trackFinished()) {
 		// 	std::cout << "Agent " << i << " | Tour " << agent.lapCount() << " | Temps " << agent.lastLapTime()
@@ -431,25 +448,46 @@ void Application::loadChampion(const ChampionLoadRequest& request) {
 	if (!input)
 		throw IOError("Cannont open champion file");
 
-	SavedChampion saved = ChampionIO::read(input);
-
-	_followedAgent.reset();
-	_agents.clear();
-	_track = std::move(saved.track);
-	_renderer.invalidateTrack();
-	_bestNetwork = std::move(saved.network);
-	_bestLapTime = saved.lapTime;
-	_championFile = request.path;
-	_replayChampion = request.mode == ChampionLoadMode::Replay;
-	_activeTrackFile = std::filesystem::path(request.path).replace_extension(".track").string();
-	resetPopulation(&*_bestNetwork, _replayChampion);
-
-	if (_replayChampion) {
-		_generation = 1;
-	} else {
-		_generation = 0;
-		evolvePopulation(0);
-	}
+    SavedChampion saved = ChampionIO::read(input);
+    const bool seedRace=request.mode==ChampionLoadMode::SeedRace;
+    if (seedRace && saved.mode!=DrivingMode::Chrono)
+        throw IOError("Select a chrono champion to seed course training");
+    // Validate transfer before changing the active world.
+    if (seedRace || saved.mode==DrivingMode::Race) {
+        (void)saved.network.expandedDrivingNetwork();
+        if (saved.track.roadWidth()<8.0f) throw trackError("Overtaking training requires a track at least 8 metres wide");
+        for (const auto& scenario : raceScenarios(saved.track)) (void)RaceEpisode{saved.track,scenario};
+    }
+    _followedAgent.reset();
+    _agents.clear(); _raceTraining.reset(); _manual.reset();
+    _track=std::move(saved.track);
+    _renderer.invalidateTrack();
+    auto sourcePath=std::filesystem::path(request.path);
+    if (saved.mode==DrivingMode::Race) {
+        auto stem=sourcePath.stem().string();
+        const auto raceSuffix=stem.rfind("_race");
+        if (raceSuffix!=std::string::npos) {
+            const auto tail=stem.substr(raceSuffix+5);
+            const bool numbered=tail.size()>1 && tail[0]=='_' &&
+                std::all_of(tail.begin()+1,tail.end(),[](char c){return c>='0' && c<='9';});
+            if (tail.empty() || numbered) sourcePath=sourcePath.parent_path()/stem.substr(0,raceSuffix);
+        }
+    }
+    _activeTrackFile=sourcePath.replace_extension(".track").string();
+    if (seedRace) {
+        configureTraining(DrivingMode::Race,&saved.network);
+    } else {
+        _drivingMode=saved.mode; _trainingSettings.mode=saved.mode;
+        _bestNetwork=std::move(saved.network);
+        _bestLapTime=saved.lapTime;
+        _championFile=request.path;
+        _replayChampion=request.mode==ChampionLoadMode::Replay;
+        _generation=1; _lastRaceScore={};
+        resetPopulation(&*_bestNetwork,_replayChampion);
+        if (!_replayChampion && _drivingMode==DrivingMode::Chrono) evolvePopulation(0);
+        _imGuiLayer.setChampionPath(_championFile);
+    }
+    _editing=false;
 
 	_trainingSettings.paused = true;
 	_trainingSettings.showSimulation = true;
@@ -492,4 +530,58 @@ void Application::initOpenGL() {
 
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
+}
+
+void Application::configureTraining(DrivingMode mode, const Network* seed) {
+    const std::optional<Network> transferred=(mode==DrivingMode::Race && seed)
+        ? std::optional<Network>{seed->expandedDrivingNetwork()} : std::nullopt;
+    std::optional<Network> champion;
+    float bestTime=std::numeric_limits<float>::infinity();
+    auto path=std::filesystem::path(_activeTrackFile);
+    const auto stem=path.stem().string()+(mode==DrivingMode::Race ? "_race" : "");
+    path=path.parent_path()/(stem+".f1");
+    int suffix=1;
+    while (std::filesystem::exists(path)) {
+        try {
+            std::ifstream input{path};
+            auto saved=ChampionIO::read(input);
+            std::ostringstream a,b;
+            TrackIO::write(a,_track); TrackIO::write(b,saved.track);
+            if (saved.mode==mode && a.str()==b.str()) {
+                champion=std::move(saved.network); bestTime=saved.lapTime; break;
+            }
+        } catch (const std::exception&) { /* preserve incompatible/unreadable files */ }
+        path=path.parent_path()/(stem+"_"+std::to_string(++suffix)+".f1");
+    }
+    const Network* initial=champion ? &*champion : (transferred ? &*transferred : nullptr);
+    // Construct race worlds before committing the mode; a rejected circuit keeps chrono usable.
+    std::unique_ptr<RaceTraining> race;
+    if (mode==DrivingMode::Race) race=std::make_unique<RaceTraining>(_track,initial);
+    _drivingMode=mode; _trainingSettings.mode=mode;
+    _bestNetwork=std::move(champion); _bestLapTime=bestTime;
+    _championFile=path.string(); _replayChampion=false;
+    _generation=1; _lastRaceScore={}; _followedAgent.reset();
+    _agents.clear(); _raceTraining=std::move(race);
+    if (mode==DrivingMode::Chrono) resetPopulation(_bestNetwork ? &*_bestNetwork : nullptr);
+    _trainingSettings.paused=true;
+    _imGuiLayer.setChampionPath(_championFile);
+}
+void Application::stepRaceTraining(float dt) {
+    if (_raceTraining->finished()) return;
+    _raceTraining->step(dt);
+    if (!_raceTraining->finished()) return;
+    const auto best=_raceTraining->bestIndex();
+    _lastRaceScore=_raceTraining->score(best);
+    if (_replayChampion) return;
+    if (_lastRaceScore.successes==_raceTraining->scenarioCount() && _lastRaceScore.time<_bestLapTime) {
+        std::ostringstream output;
+        ChampionIO::write(output,_track,_raceTraining->network(best),_lastRaceScore.time,DrivingMode::Race);
+        TrackIO::saveText(_championFile,output.str());
+        _bestLapTime=_lastRaceScore.time; _bestNetwork=_raceTraining->network(best);
+    }
+    std::cout << "Course | Generation " << _generation << " | Reussites " << _lastRaceScore.successes
+              << "/5 | Contacts voitures " << _lastRaceScore.carContacts
+              << " | Contacts piste " << _lastRaceScore.wallContacts << '\n';
+    _raceTraining->evolve(_generator);
+    ++_generation;
 }

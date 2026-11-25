@@ -63,3 +63,52 @@ void Network::mutate(float probability, float strength, std::mt19937& generator)
 	for (Layer& layer : _layers)
 		layer.mutate(probability, strength, generator);
 }
+std::vector<std::size_t> Network::topology() const {
+    std::vector<std::size_t> shape{_layers.front()._neurons.front()._weights.size()};
+    for (const auto& layer : _layers) shape.push_back(layer._neurons.size());
+    return shape;
+}
+std::vector<float> Network::parameters() const {
+    std::vector<float> values;
+    for (const auto& layer : _layers) for (const auto& n : layer._neurons) {
+        values.insert(values.end(),n._weights.begin(),n._weights.end());
+        values.push_back(n._bias);
+    }
+    return values;
+}
+void Network::forwardInto(std::span<const float> inputs, std::span<float> output,
+                         std::span<float> a, std::span<float> b) const {
+    std::span<const float> current=inputs;
+    for (std::size_t i=0;i<_layers.size();++i) {
+        const auto& layer=_layers[i];
+        auto target=(i%2==0 ? a : b);
+        if (target.size()<layer._neurons.size()) throw neuralError("Inference workspace too small");
+        for (std::size_t j=0;j<layer._neurons.size();++j) target[j]=layer._neurons[j].forward(current);
+        current=target.first(layer._neurons.size());
+    }
+    if (output.size()!=current.size()) throw neuralError("Invalid inference output size");
+    std::copy(current.begin(),current.end(),output.begin());
+}
+Network Network::expandedDrivingNetwork() const {
+    const auto shape=topology();
+    if (shape.size()!=4 || (shape[0]!=8 && shape[0]!=23) || shape[1]>32 || shape[2]>32 || shape[3]!=3)
+        throw neuralError("Transfer requires a driving network with two hidden layers of at most 32 neurons");
+    const std::size_t widths[4]={23,32,32,3};
+    std::vector<Layer> layers;
+    for (std::size_t l=0;l<3;++l) {
+        std::vector<Neuron> neurons;
+        for (std::size_t j=0;j<widths[l+1];++j) {
+            std::vector<float> weights(widths[l],0.0f);
+            float bias=0.0f;
+            Activation activation=Activation::Tanh;
+            if (j<_layers[l]._neurons.size()) {
+                const auto& source=_layers[l]._neurons[j];
+                std::copy(source._weights.begin(),source._weights.end(),weights.begin());
+                bias=source._bias; activation=source._activation;
+            }
+            neurons.emplace_back(std::move(weights),bias,activation);
+        }
+        layers.emplace_back(std::move(neurons));
+    }
+    return Network{std::move(layers)};
+}

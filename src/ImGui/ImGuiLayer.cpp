@@ -91,11 +91,16 @@ void ImGuiLayer::shutdown() {
  * **********************************************************************/
 void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) {
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(panelWidth, 440));
+	ImGui::SetNextWindowSize(ImVec2(panelWidth, 620));
 	ImGui::Begin("Entrainement");
 
 	if (ImGui::Button("Editeur de circuit")) _editorRequest = true;
-	ImGui::Checkbox("Pause", &settings.paused);
+    int mode=settings.mode==DrivingMode::Race ? 1 : 0;
+    if (ImGui::Combo("Mode", &mode, "Chrono\0Course - depassement\0")) {
+        settings.mode=mode==0 ? DrivingMode::Chrono : DrivingMode::Race;
+        settings.paused=true;
+    }
+    ImGui::Checkbox("Pause", &settings.paused);
 	ImGui::Checkbox("Afficher la simulation", &settings.showSimulation);
 	ImGui::Checkbox("Vue de tout le circuit", &settings.trackOverview);
 	ImGui::Checkbox("Entrainement accelere", &settings.accelerated);
@@ -106,8 +111,15 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 				static_cast<unsigned long long> (stats.activeAgents),
 				static_cast<unsigned long long> (stats.populationSize));
 	
-	if (stats.hasChampion)
-		ImGui::Text("Record : %.3f s", stats.bestLapTime);
+    if (settings.mode==DrivingMode::Race) {
+        ImGui::Text("Meilleur bilan termine : %llu / 5", static_cast<unsigned long long>(stats.raceSuccesses));
+        ImGui::Text("Contacts voitures : %llu | piste : %llu",
+            static_cast<unsigned long long>(stats.carContacts),static_cast<unsigned long long>(stats.wallContacts));
+        ImGui::Text("Essai affiche : %llu / 5",static_cast<unsigned long long>(stats.raceScenario+1));
+        ImGui::TextWrapped("Chaque candidat roule dans son propre exercice face a une voiture lente.");
+    }
+    if (stats.hasChampion)
+        ImGui::Text(settings.mode==DrivingMode::Race ? "Record suite : %.3f s" : "Record : %.3f s", stats.bestLapTime);
 	else
 		ImGui::TextUnformatted("Aucun champion");
 	
@@ -120,7 +132,10 @@ void ImGuiLayer::render(TrainingSettings& settings, const TrainingStats& stats) 
 	if (ImGui::Button("Voir le champion"))
 		_loadRequest = ChampionLoadRequest{_championPath, ChampionLoadMode::Replay};
 
-	if (!_errorMessage.empty())
+    if (ImGui::Button("Course depuis un champion chrono"))
+        _loadRequest=ChampionLoadRequest{_championPath,ChampionLoadMode::SeedRace};
+
+    if (!_errorMessage.empty())
 		ImGui::TextWrapped("%s", _errorMessage.c_str());
 
 	_panelRight = ImGui::GetWindowPos().x + ImGui::GetWindowSize().x;

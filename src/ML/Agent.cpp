@@ -27,6 +27,10 @@ void Agent::step(float dt) {
 	if (!_active)
 		return;
 
+	advance(decide(), dt);
+}
+
+CarControls Agent::decide() const {
 	const auto observation = _simulation.observe();
 	const auto inputs = observation.normalized(40.0f, 50.0f);
 
@@ -39,6 +43,11 @@ void Agent::step(float dt) {
 	controls.throttle = std::clamp(outputs[1], 0.0f, 1.0f);
 	controls.brake    = std::clamp(outputs[2], 0.0f, 1.0f);
 
+    return controls;
+}
+
+void Agent::advance(const CarControls& controls, float dt) {
+    if (!_active) return;
 	const bool collided = _simulation.step(controls, dt);
 	_progress.update(_simulation.location().coordinate, dt);
 	_elapsedTime += dt;

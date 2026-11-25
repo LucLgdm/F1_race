@@ -1,5 +1,10 @@
 # F1_race
 
+Le mode **Course - depassement** ajoute un apprentissage distinct du chrono, avec
+un réseau 23 → 32 → 32 → 3 et des collisions rectangulaires entre véhicules.
+Voir le [guide des modes chrono et course](docs/RaceTraining.md) pour les exercices,
+les sauvegardes compatibles et la préparation de la parallélisation CPU/GPU.
+
 Un **éditeur de circuits OpenGL / ImGui** est disponible : pièces droites ou arrondies, manipulation
 à la souris, sauvegarde, sélection de circuit et essai de conduite. Voir le [guide de l’éditeur](docs/TrackEditor.md).
 

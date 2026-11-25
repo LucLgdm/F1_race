@@ -11,6 +11,7 @@
 
 #include "Track/Track.hpp"
 #include "ML/Network.hpp"
+#include "ML/DrivingMode.hpp"
 #include "Exception.hpp"
 
 #include <iosfwd>
@@ -27,11 +28,12 @@
 struct SavedChampion {
 	Track track;
 	Network network;
-	float lapTime;
+	float lapTime; // race: total successful suite time, not a lap record
+    DrivingMode mode = DrivingMode::Chrono;
 };
 
 class ChampionIO {
 	public:
-		static void write(std::ostream& output, const Track& track, const Network& network, float lapTime);
+		static void write(std::ostream& output, const Track& track, const Network& network, float lapTime, DrivingMode mode = DrivingMode::Chrono);
 		[[nodiscard]] static SavedChampion read(std::istream& input);
 };

@@ -11,8 +11,10 @@
 
 #include <cstddef>
 #include <string>
+#include "ML/DrivingMode.hpp"
 
 struct TrainingSettings {
+    DrivingMode mode = DrivingMode::Chrono;
 	bool paused = true;
 	bool showSimulation = true;
 	bool accelerated = false;
@@ -26,12 +28,17 @@ struct TrainingStats {
 
 	bool hasChampion = false;
 	float bestLapTime = 0.0f;
+    std::size_t raceSuccesses = 0;
+    std::size_t carContacts = 0;
+    std::size_t wallContacts = 0;
+    std::size_t raceScenario = 0;
 };
 
 
 enum class ChampionLoadMode {
 	ResumeTraining,
-	Replay
+	Replay,
+    SeedRace
 };
 
 struct ChampionLoadRequest {
