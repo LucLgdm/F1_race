@@ -58,7 +58,7 @@ class ImGuiLayer {
 		float _viewPortWidth;
 		float _viewPortHeight;
 
-		char _championPath[512] = "circuits/rectangle.f1";
+		char _championPath[512] = "circuits/Le_Mans.f1";
 		std::optional<ChampionLoadRequest> _loadRequest;
 		std::string _errorMessage;
 };

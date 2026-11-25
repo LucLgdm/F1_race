@@ -1,5 +1,7 @@
 #include "TrackQueryReference.hpp"
+#include "Track/ChampionIO.hpp"
 #include "Track/TrackIO.hpp"
+#include <fstream>
 #include <catch2/catch_test_macros.hpp>
 #include <array>
 #include <limits>
@@ -36,7 +38,8 @@ std::vector<Track> examples() {
 	tracks.emplace_back(std::vector<TrackSegment>{{{0, 0}, 0, 80, true, 50, 1}}, 99.99f);
 	tracks.emplace_back(std::vector<TrackSegment>{{{90000, -90000}, 0.64f, 120}}, 12);
 	tracks.emplace_back(std::vector<TrackSegment>{{{0, 0}, 0, 80}}, 0.000001f);
-	tracks.push_back(TrackIO::load(std::filesystem::path(F1_SOURCE_DIR) / "circuits/Le_Mans.track"));
+	std::ifstream input{std::filesystem::path(F1_SOURCE_DIR) / "circuits/Le_Mans.f1"};
+	tracks.push_back(ChampionIO::read(input).track);
 	tracks.emplace_back(std::vector<TrackSegment>{}, 12);
 	return tracks;
 }

@@ -177,11 +177,11 @@ TEST_CASE("Un champion sur un circuit arrondi retrouve son reseau et son trace",
 	const std::array<float, 8> inputs{{0.1f, 0.2f, 0.5f, 0.6f, 0.1f, 0.3f, 0, 1}};
 	REQUIRE(saved.network.forward(inputs) == network.forward(inputs));
 }
-TEST_CASE("Le champion rectangle historique reste jouable", "[editor][compatibility]") {
-	std::ifstream input{std::string(F1_SOURCE_DIR) + "/circuits/rectangle.f1"};
+TEST_CASE("Le champion Le Mans reste jouable", "[editor][compatibility]") {
+	std::ifstream input{std::string(F1_SOURCE_DIR) + "/circuits/Le_Mans.f1"};
 	REQUIRE(input.good());
 	const auto saved = ChampionIO::read(input);
-	REQUIRE(saved.track.length() == Catch::Approx(2520));
+	REQUIRE(saved.track.segments().size() == 34);
 	REQUIRE(saved.track.issues().empty());
 }
 TEST_CASE("ImGui ajoute annule retablit et sauvegarde un circuit", "[editor][ui]") {

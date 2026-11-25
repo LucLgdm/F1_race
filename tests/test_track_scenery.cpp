@@ -1,5 +1,7 @@
 #include "Track/TrackScenery.hpp"
+#include "Track/ChampionIO.hpp"
 #include "Track/TrackIO.hpp"
+#include <fstream>
 #include "CameraView.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>
@@ -71,7 +73,8 @@ TEST_CASE("Les bandes epousent les deux sens de virage", "[scenery]") {
 }
 
 TEST_CASE("Les arbres restent eloignes de toutes les portions de piste", "[scenery]") {
-	const auto track = TrackIO::load(std::filesystem::path(F1_SOURCE_DIR) / "circuits/Le_Mans.track");
+	std::ifstream input{std::filesystem::path(F1_SOURCE_DIR) / "circuits/Le_Mans.f1"};
+	const auto track = ChampionIO::read(input).track;
 	const auto scene = buildTrackScenery(track);
 	REQUIRE_FALSE(scene.trees.empty());
 	REQUIRE(scene.trees.size() <= TrackScenery::maxTrees);
